@@ -28,17 +28,36 @@ El enfoque principal de este proyecto es la integración de hardware y software 
   - Powerbank
 
 - **Software:**
-  - ...
+  *** Python ***
+  - La vision por computador (reconocimiento de voz).
+  - Acelerometro (tolerancias de equilibrio).
+  - Sensor ultrasonido.
+
+  *** C ***
+  - Controlar servos.
+  - Recibir voz de micros.
+  - Salida del altavoz.
 
 #### ToDo's
-- [ ] ...
+##### V1 - 8/05
+- [ ] Modelo 3D.
+- [ ] Imprimir el chasis.
+- [ ] Movimientos: grados + distancia recorrida.
+- [ ] Equilibrio.
+- [ ] Comprobar interconexion de componentes.
+
+##### V2 - 22/05
+- [ ] Modulo de voz integrado (posicion + distancia).
+- [ ] Reconocimiento de obstaculos. 
+- [ ] Respuestas altavoz.
+
+##### V3 - 05/6
+- [ ] Identificacion voces grupo.
+- [ ] Comandas de voz.
 - [ ] 
-- [ ] 
-- [ ] 
-- [ ] 
-- [ ] 
-- [ ] 
-- [ ] 
+
+##### V4 - Final 12/06
+- [ ] Esquivar objetos.
 - [ ] 
 
 #### Referencias
