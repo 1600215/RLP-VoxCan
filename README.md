@@ -32,11 +32,12 @@ El enfoque principal de este proyecto es la integración de hardware y software 
   - La vision por computador (reconocimiento de voz).
   - Acelerometro (tolerancias de equilibrio).
   - Sensor ultrasonido.
-
-  *** C ***
-  - Controlar servos.
   - Recibir voz de micros.
   - Salida del altavoz.
+  
+  *** C ***
+  - Controlar servos.
+
 
 #### ToDo's
 ##### V1 - 8/05
