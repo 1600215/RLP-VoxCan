@@ -1,0 +1,6 @@
+{
+    "sketch": "main.ino",
+    "output": "build",
+    "board": "atmel-avr-xminis:avr:atmega328p_xplained_mini",
+    "port": "/dev/tty.usbserial-14120"
+}
