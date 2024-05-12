@@ -18,12 +18,20 @@ class State:
     STANDBY = 3
     COMMAND = 4
 
+class Command:
+    CONNECT = 0
+    GET_POS = 1
+    SET_POS = 2
+    
+class Status:
+    CONNECTED = 0
+
 
 #-----------------------------------------------------------------------
 # Inicialización del puerto serie
 try:
     ser = serial.Serial(port='/dev/ttyUSB0', baudrate=9600, timeout=1)
-except serial.SerialException as e:
+except Exception as e:
     print("Error de comunicación serial con Arduino Nano:", e)
 
 
@@ -34,7 +42,10 @@ try:
     
 except Exception as e:
     print("Error al inicializar el MPU6050:", e)
-current_state = State.CALIBRATION
+    
+    
+    
+current_state = State.CONNECTING
 
 
 
@@ -67,10 +78,11 @@ while True:
             #si la conexión con el Arduino Nano está abierta
             if ser.isOpen():
                 print("Arduino Nano conectado")
-                # Enviar el comando de conexión al Arduino
+                # Enviar el comazndo de conexión al Arduino
                 try:
-                    res = {"command" : "CONNECT"}
-                    ser.write(json.dumps(res).encode() + b'\n')
+                    res = {'command' : Command.CONNECT}
+                    a = ser.write(json.dumps(res).encode('utf-8'))
+                    print(a)
                     current_state = State.CONNECTING
                 except Exception as e:
                     print("Error al enviar el comando de conexión:", e)
@@ -80,23 +92,26 @@ while True:
         elif current_state == State.CONNECTING:
             # Esperar la respuesta del Arduino
             if ser.in_waiting > 0:
-                recv = ser.readline().decode().strip()
+                
+                recv = ser.readline().decode('utf-8').rstrip()
                 recv = json.loads(recv)
-                if "status" in recv and recv["status"] == "CONNECTED":
+
+                
+                if "status" in recv and recv["status"] == Status.CONNECTED:
                     print("Arduino Nano conectado")
                     current_state = State.CALIBRATION
+
 
         #-----------------------------------------------------------------------
         #Calibración de los servos de nuestro robot VOXCAN
         elif current_state == State.CALIBRATION:
-            
-                        
+        
             #min = DBL_MAX
             config = None
             while True:      
                           
                 #Comprueba si esta desequilibrado
-                ser.write(json.dumps({"command" : "getPos"}).encode() + b'\n')
+                ser.write(json.dumps({"command" : Command.GET_POS}).encode() + b'\n')
                 while ser.in_waiting == 0:
                     pass
                 recv = json.loads(ser.readline().decode().strip())
@@ -118,11 +133,8 @@ while True:
             
         #-----------------------------------------------------------------------
         elif current_state == State.COMMAND:
-            # Esperar la respuesta del Arduino (opcional)
-            response = ser.readline().decode().strip()
-            print("Respuesta del Arduino:", response)
-            # Volver al estado de espera
-            current_state = State.STANDBY
+
+                current_state = State.STANDBY
             
         #-----------------------------------------------------------------------
         else:
@@ -130,3 +142,4 @@ while True:
 
     except Exception as e:
         print("Error en el bucle funcional:", e)
+        break
