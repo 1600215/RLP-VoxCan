@@ -59,7 +59,7 @@ void setServosPosition(const JsonObject& parametros) {
   }
 }
 
-JsonObject getServosPosition() {
+DynamicJsonDocument getServosPosition() {
   DynamicJsonDocument root(200);
   for (int i = 0; i < NUM_SERVOS; i++) {
     root[String(i)] = servos[i].getPosition();
@@ -73,18 +73,18 @@ void setup() {
   pwm.setPWMFreq(PWM_FREQUENCY);
 
 
-  servos[DERECHO_SUP] = ServoControl(DERECHO_SUP, 160);
-  delay(10);
-  servos[IZQUIERDO_SUP] = ServoControl(IZQUIERDO_SUP, 20);
-  delay(10);
-  
-  delay(1000);
-  
-  servos[DERECHO_INF] = ServoControl(DERECHO_INF, 135);
-  delay(10);
-  servos[IZQUIERDO_INF] = ServoControl(IZQUIERDO_INF, 45);
-  delay(10);
-  
+  servos[DERECHO_SUP] = ServoControl(DERECHO_SUP, 110);
+  delay(20);
+
+  servos[IZQUIERDO_SUP] = ServoControl(IZQUIERDO_SUP, 50);
+  delay(2000);
+
+   
+  servos[DERECHO_INF] = ServoControl(DERECHO_INF, 130);
+  delay(20);
+
+  servos[IZQUIERDO_INF] = ServoControl(IZQUIERDO_INF, 70);
+
   
 }
 
