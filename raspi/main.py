@@ -74,6 +74,7 @@ while True:
     
         #-----------------------------------------------------------------------
         #Estado inicial para realizar conexión con el arduino nano
+        
         if current_state == State.INITIALIZE:
             #si la conexión con el Arduino Nano está abierta
             if ser.isOpen():
@@ -89,6 +90,7 @@ while True:
             
         #-----------------------------------------------------------------------
         #Estado de conexión con el arduino nano
+        
         elif current_state == State.CONNECTING:
             # Esperar la respuesta del Arduino
             if ser.in_waiting > 0:
@@ -104,6 +106,7 @@ while True:
 
         #-----------------------------------------------------------------------
         #Calibración de los servos de nuestro robot VOXCAN
+        
         elif current_state == State.CALIBRATION:
         
             #min = DBL_MAX

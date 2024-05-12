@@ -2,10 +2,19 @@
 #include <Adafruit_PWMServoDriver.h>
 #include <ArduinoJson.h>
 
+//--------------------------------------------------------------------
+//Constantes para el funcionamieto del robot 
+
 #define PCA9685_ADDRESS 0x40
 #define PWM_FREQUENCY 50
 
-#define NUM_SERVOS 2
+
+//Numero de servos
+
+#define NUM_SERVOS 4
+
+
+//Tipos de posiciones de los servos
 
 #define DERECHO_SUP 0
 #define DERECHO_INF 1
@@ -13,20 +22,37 @@
 #define IZQUIERDO_INF 3
 #define DELANTERO 4
 
+
+//Diferentes llamadas a recibir de raspi
+
 #define CONNECT 0
 #define GET_POS 1
 #define SET_POS 2
 
+
+//Estados de la conexión serie (solo CONNECTED)
+
 #define CONNECTED 0
+
+
+// constantes para calcular posiciones de un servo
 
 const int minPulse = 150;
 const int maxPulse = 600;
 
+
+//--------------------------------------------------------------------
+//Inicialización del ServoDriver que nos permitirá modificar nuestros servos
+
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(PCA9685_ADDRESS);
+
+
+//--------------------------------------------------------------------
+//Clase para controlar los servos 
 
 class ServoControl {
   private:
-    uint8_t servoNum = NULL;
+    uint8_t servoNum= NULL;
     int angulo = NULL;
   
   public:
@@ -46,18 +72,27 @@ class ServoControl {
     int getPosition(){ return this->angulo; }
 };
 
+
+//--------------------------------------------------------------------
+//Declaración de los NUM_SERVOS servos
+
 ServoControl servos[NUM_SERVOS];
+
+
+//--------------------------------------------------------------------
+//función que a partir de un json del estilo {"0": 50, "1" : 80} setea todos los angulos en sus servos correspondientes
 
 void setServosPosition(const JsonObject& parametros) {
   for (JsonPair kv : parametros) {
-
     const char* nombreServo =kv.key().c_str();
-    int key = atoi(nombreServo);
-
+    int nServo = atoi(nombreServo);
     int angulo = kv.value().as<unsigned int>();
-    servos[key].setPosition(angulo);
+    servos[nServo].setPosition(angulo);
   }
 }
+
+//--------------------------------------------------------------------
+//Función que devuelve un json del estilo {"0": 50, "1" : 80} con la información de todos los servos
 
 DynamicJsonDocument getServosPosition() {
   DynamicJsonDocument root(200);
@@ -67,12 +102,14 @@ DynamicJsonDocument getServosPosition() {
   return root;
 }
 
+
+//--------------------------------------------------------------------
+//Función setup de arduino para iniciar la posición de los servos y el puerto serie
+
 void setup() {
   Serial.begin(9600);
   pwm.begin();
   pwm.setPWMFreq(PWM_FREQUENCY);
-
-
   servos[DERECHO_SUP] = ServoControl(DERECHO_SUP, 110);
   delay(20);
 
@@ -84,14 +121,19 @@ void setup() {
   delay(20);
 
   servos[IZQUIERDO_INF] = ServoControl(IZQUIERDO_INF, 70);
-
-  
+  delay(20);
 }
 
+//--------------------------------------------------------------------
+//Función principal de la parte de arduino del robot
+//Lee json de entrada y en función del comando {"command" : (0 || 1 || 2)} (utilizando las constantes de arriba) se hace un comando o otro 
 
 void loop() {
   if (Serial.available() > 0) {
 
+
+    //--------------------------------------------------------------------
+    //Lectura del json
 
     String jsonStr = Serial.readStringUntil('\n');
     
@@ -104,9 +146,18 @@ void loop() {
       return;
     }
 
+
+    //--------------------------------------------------------------------
+    //Lectura de la comanda como entero
+
     int nombreCommand = doc['command'].as<int>();
 
+
+    //--------------------------------------------------------------------
+    //if-else para los diferentes comandos possibles (todas las funciones han sido testeadas)
+
     if (nombreCommand == CONNECT) {
+
       DynamicJsonDocument response(200);
       char serialized[128];
       response["status"] = CONNECTED;
@@ -124,10 +175,12 @@ void loop() {
       
       JsonObject parametros = doc["parametros"];
       setServosPosition(parametros);
+   
     }
     else {
-      
-        Serial.println(nombreCommand);
+
+        Serial.println("Error con los comandos, comando invalido");
+        return
     }
   }
 }
