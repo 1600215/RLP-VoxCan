@@ -60,8 +60,7 @@ void setServosPosition(const JsonObject& parametros) {
 }
 
 JsonObject getServosPosition() {
-  DynamicJsonDocument doc(200);
-  JsonObject root = doc.to<JsonObject>();
+  DynamicJsonDocument root(200);
   for (int i = 0; i < NUM_SERVOS; i++) {
     root[String(i)] = servos[i].getPosition();
   }
@@ -116,7 +115,7 @@ void loop() {
 
     } else if (nombreCommand == GET_POS) {
       
-      JsonObject servoPositions = getServosPosition();
+      DynamicJsonDocument servoPositions = getServosPosition();
       char serialized[128];
       serializeJson(servoPositions, serialized);
       Serial.println(serialized);
