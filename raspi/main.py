@@ -125,7 +125,7 @@ def calcular_desbalanceo():
 #-----------------------------------------------------------------------
 #Función para enviar el comando de conexión al arduino nano
 
-def connect():
+def connect(ser):
     '''The `connect` function establishes communication with an Arduino Nano and returns True if
     successful, otherwise returns False.
     
@@ -158,7 +158,7 @@ def connect():
 #-----------------------------------------------------------------------
 #Función para obtener la posición de los servos
 
-def getPos():
+def getPos(ser):
     '''The `getPos` function sends a command to a serial device to retrieve position data and returns the
     initial position received.
     
@@ -166,6 +166,8 @@ def getPos():
     -------
         The `getPos()` function returns the initial position received from the serial port after sending a
     command to get the position.
+    
+    {"0" : 90, "1" : 90, "2" : 90, "3" : 90, "4" : 90}
     
     '''
     
@@ -187,7 +189,7 @@ def getPos():
 #-----------------------------------------------------------------------
 #Función para enviar los parámetros de los servos
 
-def setPos(params):
+def setPos(ser, params):
     '''The function `setPos` sends a command to a serial device, waits for a response, and returns
     calculated values based on the response.
     
@@ -222,7 +224,7 @@ def setPos(params):
 #-----------------------------------------------------------------------
 #Función para calibrar los servos
 
-def calibrate_servos():
+def calibrate_servos(ser):
     '''This Python function calibrates servo motors by iterating through different angles for each axis and
     finding the configuration that minimizes the sum of inclinations in the x and y directions.
     
@@ -235,7 +237,7 @@ def calibrate_servos():
     '''
     min = sys.float_info.max
     config = None
-    initialPos = getPos()  
+    initialPos = getPos(ser)  
                 
     axisDS = np.arange(initialPos[str(Axis.DERECHO_SUP)] - 10, initialPos[str(Axis.DERECHO_SUP)] + 10, 1) 
     axisDI= np.arange(initialPos[str(Axis.DERECHO_INF)] - 10, initialPos[str(Axis.DERECHO_INF)] + 10, 1)   
@@ -247,9 +249,8 @@ def calibrate_servos():
             for angulo_eje_3 in axisIS:
                 for angulo_eje_4 in axisII:
                     try:
-                        incl_x, incl_y = setPos({str(Axis.DERECHO_SUP) : angulo_eje_1, str(Axis.DERECHO_INF) : angulo_eje_2, str(Axis.IZQUIERDO_SUP) : angulo_eje_3, str(Axis.IZQUIERDO_INF) : angulo_eje_4})
-                    
-                              
+                        incl_x, incl_y = setPos(ser, {str(Axis.DERECHO_SUP) : angulo_eje_1, str(Axis.DERECHO_INF) : angulo_eje_2, str(Axis.IZQUIERDO_SUP) : angulo_eje_3, str(Axis.IZQUIERDO_INF) : angulo_eje_4})
+                             
                         if incl_x is None or incl_y is None:
                             print("Error al enviar los parámetros de los servos")
                             sys.exit(1)
@@ -283,11 +284,11 @@ while True:
                 
                 # Enviar el comazndo de conexión al Arduino 
                 try:
-                    if connect():
+                    if connect(ser):
                         current_state = State.CALIBRATION
                     else:
                         print("Error al conectar con el Arduino Nano")
-                        if time.time() - t > 5:
+                        if time.time() - t > 10:
                             print("Error al conectar con el Arduino Nano")
                             break
                         
@@ -311,12 +312,16 @@ while True:
                 print("Error al poner el pin GPIO del led verde en bajo y el amarillo en alto", e)
                 sys.exit(1)
             
-            standby_params = calibrate_servos()
+            standby_params = calibrate_servos(ser)
+            
+            if standby_params is None:
+                print("Error al calibrar los servos")
+                sys.exit(1)
             
             print("Calibración finalizada")
             print("Parámetros de calibración:", standby_params)
             
-            _, _ = setPos(standby_params)
+            _, _ = setPos(ser, standby_params)
 
             try:
                 GPIO.output(LED_PIN_GREEN, GPIO.HIGH)

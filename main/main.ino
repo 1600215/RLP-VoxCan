@@ -33,6 +33,7 @@
 //Estados de la conexión serie (solo CONNECTED)
 
 #define CONNECTED 0
+#define RECIVED 1
 
 
 // constantes para calcular posiciones de un servo
@@ -175,6 +176,13 @@ void loop() {
       
       JsonObject parametros = doc["parametros"];
       setServosPosition(parametros);
+      
+      DynamicJsonDocument response(200);
+      char serialized[128];
+      response["status"] = RECIVED;
+      serializeJson(response, serialized);
+      Serial.println(serialized);
+   
    
     }
     else {
