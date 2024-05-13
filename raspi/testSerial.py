@@ -1,12 +1,13 @@
-from ..main import getPos, setPos, Command, Axis
 import serial
 import time
-import sys
 import numpy as np
+import sys
+from main import Command, Axis, getPos, setPos
 
 
 try:
     ser = serial.Serial('/dev/ttyUSB0', 9600)
+    time.sleep(1)
 except serial.serialutil.SerialException:
     print("Serial port not found")
     sys.exit(1)
