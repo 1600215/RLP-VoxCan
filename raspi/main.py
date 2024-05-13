@@ -15,10 +15,9 @@ import RPi.GPIO as GPIO
 
 class State:
     INITIALIZE = 0
-    CONNECTING = 1
-    CALIBRATION = 2
-    STANDBY = 3
-    COMMAND = 4
+    CALIBRATION = 1
+    STANDBY = 2
+    COMMAND = 3
 
 class Command:
     CONNECT = 0
@@ -26,8 +25,8 @@ class Command:
     SET_POS = 2
     
 class Status:
-    CONNECTED = 0
-    RECIVED = 1
+    OK = 0
+    ERROR = 1
     
 class Axis:
     DERECHO_SUP = 0
@@ -99,7 +98,7 @@ except Exception as e:
 #-----------------------------------------------------------------------
 #Función para caluclar el desbalanceo en los ejes x y y
 
-def calcular_desbalanceo():
+def calcular_desbalanceo(mpu):
     '''This Python function calculates the imbalance in both x and y axes based on accelerometer data.
     
     Returns
@@ -145,9 +144,15 @@ def connect(ser):
         pass
                     
     recv = ser.readline().decode('utf-8').rstrip()
-    recv = json.loads(recv)
-                    
-    if "status" in recv and recv["status"] == Status.CONNECTED:
+    
+    
+    try:
+        recv = json.loads(recv)
+    except:    
+        print("Error al cargar el json - volvemos a intentar")
+        return False
+        
+    if "status" in recv and recv["status"] == Status.OK:
         print("Arduino Nano comunicado")
         return True
                     
@@ -172,24 +177,27 @@ def getPos(ser):
     '''
     
     command = {'command': Command.GET_POS}
-    ser.write(json.dumps(command).encode('utf-8'))
+    ser.write((json.dumps(command) + '\n').encode('utf-8'))
     ser.flush()
                 
     while ser.in_waiting == 0:
         pass
+    try:
+        initialPos = json.loads(ser.readline().decode().rstrip())
+    except:
+        print("Error al cargar el json")
+        return None
     
-    initialPos = json.loads(ser.readline().decode().strip())
+    if "status" in initialPos and initialPos["status"] == Status.OK:
+        return initialPos['posiciones']
     
-    if "status" in initialPos and initialPos["status"] == Status.RECIVED:
-        return initialPos['parametros']
-    
-    return initialPos         
+    return None         
 
 
 #-----------------------------------------------------------------------
 #Función para enviar los parámetros de los servos
 
-def setPos(ser, params):
+def setPos(ser,mpu,params):
     '''The function `setPos` sends a command to a serial device, waits for a response, and returns
     calculated values based on the response.
     
@@ -207,16 +215,17 @@ def setPos(ser, params):
     '''
     
     command = {'command': Command.SET_POS, 'parametros': params}
-    ser.write(json.dumps(command).encode('utf-8'))
+    
+    ser.write((json.dumps(command)+ '\n').encode('utf-8'))
     ser.flush()
                 
     while ser.in_waiting == 0:
         pass
     
-    recv = json.loads(ser.readline().decode().strip())
+    recv = json.loads(ser.readline().decode().rstrip())
     print(recv)
-    if(recv["status"] == Status.RECIVED):
-        incl_x, incl_y = calcular_desbalanceo()
+    if(recv["status"] == Status.OK):
+        incl_x, incl_y = calcular_desbalanceo(mpu)
         return incl_x, incl_y
     
     return None, None  
@@ -224,7 +233,7 @@ def setPos(ser, params):
 #-----------------------------------------------------------------------
 #Función para calibrar los servos
 
-def calibrate_servos(ser):
+def calibrate_servos(ser, mpu):
     '''This Python function calibrates servo motors by iterating through different angles for each axis and
     finding the configuration that minimizes the sum of inclinations in the x and y directions.
     
@@ -238,7 +247,11 @@ def calibrate_servos(ser):
     min = sys.float_info.max
     config = None
     initialPos = getPos(ser)  
-                
+    
+    if initialPos is None:
+        print("Error al obtener la posición inicial de los servos")
+        return None
+    
     axisDS = np.arange(initialPos[str(Axis.DERECHO_SUP)] - 10, initialPos[str(Axis.DERECHO_SUP)] + 10, 1) 
     axisDI= np.arange(initialPos[str(Axis.DERECHO_INF)] - 10, initialPos[str(Axis.DERECHO_INF)] + 10, 1)   
     axisIS = np.arange(initialPos[str(Axis.IZQUIERDO_SUP)] - 10, initialPos[str(Axis.IZQUIERDO_SUP)] + 10, 1)   
@@ -249,7 +262,7 @@ def calibrate_servos(ser):
             for angulo_eje_3 in axisIS:
                 for angulo_eje_4 in axisII:
                     try:
-                        incl_x, incl_y = setPos(ser, {str(Axis.DERECHO_SUP) : angulo_eje_1, str(Axis.DERECHO_INF) : angulo_eje_2, str(Axis.IZQUIERDO_SUP) : angulo_eje_3, str(Axis.IZQUIERDO_INF) : angulo_eje_4})
+                        incl_x, incl_y = setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : angulo_eje_1, str(Axis.DERECHO_INF) : angulo_eje_2, str(Axis.IZQUIERDO_SUP) : angulo_eje_3, str(Axis.IZQUIERDO_INF) : angulo_eje_4})
                              
                         if incl_x is None or incl_y is None:
                             print("Error al enviar los parámetros de los servos")
@@ -262,7 +275,7 @@ def calibrate_servos(ser):
                     except Exception as e:
                         print("Error al enviar los parámetros de los servos:", e)
                         sys.exit(1)
-    return config
+    return None
 
 
 #-----------------------------------------------------------------------
@@ -281,6 +294,8 @@ while True:
             if ser.isOpen():
                 
                 print("Arduino Nano conectado")
+
+                time.sleep(1) # Esperar a que el puerto serie se abra correctamente
                 
                 # Enviar el comazndo de conexión al Arduino 
                 try:
@@ -312,7 +327,7 @@ while True:
                 print("Error al poner el pin GPIO del led verde en bajo y el amarillo en alto", e)
                 sys.exit(1)
             
-            standby_params = calibrate_servos(ser)
+            standby_params = calibrate_servos(ser, mpu)
             
             if standby_params is None:
                 print("Error al calibrar los servos")

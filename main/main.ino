@@ -30,10 +30,10 @@
 #define SET_POS 2
 
 
-//Estados de la conexión serie (solo CONNECTED)
+//Estados de la conexión serie (OK o ERROR)
 
-#define CONNECTED 0
-#define RECIVED 1
+#define OK 0
+#define ERROR 1
 
 
 // constantes para calcular posiciones de un servo
@@ -117,7 +117,6 @@ void setup() {
   servos[IZQUIERDO_SUP] = ServoControl(IZQUIERDO_SUP, 50);
   delay(2000);
 
-   
   servos[DERECHO_INF] = ServoControl(DERECHO_INF, 130);
   delay(20);
 
@@ -138,21 +137,25 @@ void loop() {
 
     String jsonStr = Serial.readStringUntil('\n');
     
+
     // Parsear la cadena JSON en un objeto JSON
     DynamicJsonDocument doc(200);
     DeserializationError error = deserializeJson(doc, jsonStr);
     
     if (error) {
-      Serial.println("Error al parsear JSON");
-      return;
+      DynamicJsonDocument response(200);
+      char serialized[128];
+      response["status"] = ERROR;
+      serializeJson(response, serialized);
+      Serial.println(serialized);
+      return 0;
     }
 
 
     //--------------------------------------------------------------------
     //Lectura de la comanda como entero
 
-    int nombreCommand = doc['command'].as<int>();
-
+    int nombreCommand = doc["command"].as<int>();
 
     //--------------------------------------------------------------------
     //if-else para los diferentes comandos possibles (todas las funciones han sido testeadas)
@@ -161,34 +164,41 @@ void loop() {
 
       DynamicJsonDocument response(200);
       char serialized[128];
-      response["status"] = CONNECTED;
+      response["status"] = OK;
       serializeJson(response, serialized);
       Serial.println(serialized);
+      Serial.flush();
 
     } else if (nombreCommand == GET_POS) {
       
       DynamicJsonDocument servoPositions = getServosPosition();
+      DynamicJsonDocument response(200);
       char serialized[128];
-      serializeJson(servoPositions, serialized);
+
+      response["status"] = OK;
+      response["positions"] = servoPositions;
+
+      serializeJson(response, serialized);
       Serial.println(serialized);
+      Serial.flush();
+
 
     } else if (nombreCommand == SET_POS) {
       
       JsonObject parametros = doc["parametros"];
       setServosPosition(parametros);
-      
       DynamicJsonDocument response(200);
       char serialized[128];
-      response["status"] = RECIVED;
+      response["status"] = OK;
       serializeJson(response, serialized);
       Serial.println(serialized);
-   
-   
+      Serial.flush();
+
     }
     else {
 
         Serial.println("Error con los comandos, comando invalido");
-        return
+        return 0;
     }
   }
 }
