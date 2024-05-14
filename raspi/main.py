@@ -6,6 +6,8 @@ import mpu6050
 import sys
 import numpy as np
 import RPi.GPIO as GPIO
+import speech_recognition as sr
+from pydub import AudioSegment
 
 
 
@@ -49,7 +51,7 @@ LED_PIN_YELLOW = 24
 
 current_state = State.INITIALIZE
 standby_params = None
-
+recognizer = sr.Recognizer()
 
 #-----------------------------------------------------------------------
 #Inicialización de los pines GPIO de los leds 
@@ -277,6 +279,42 @@ def calibrate_servos(ser, mpu):
                         sys.exit(1)
     return None
 
+#-----------------------------------------------------------------------
+#Función para convertir audio a mp3
+
+def convert_audio_to_mp3(audio_data, output_filename):
+    '''The function `convert_audio_to_mp3` takes audio data, converts it to raw audio data, creates an
+    AudioSegment, and exports it to an MP3 file.
+    
+    Parameters
+    ----------
+    audio_data
+        The `audio_data` parameter in the `convert_audio_to_mp3` function is an object that represents
+    audio data. It seems like it has a method `get_raw_data()` that retrieves the raw audio data from
+    the object. This raw audio data is then used to create an `AudioSegment`
+    output_filename
+        The `output_filename` parameter is a string that represents the name of the file where the
+    converted audio will be saved as an MP3 file. It should include the file extension ".mp3" at the
+    end.
+    
+    '''
+    # Convert AudioData to raw audio data
+    raw_audio_data = audio_data.get_raw_data()
+    sample_rate = 44100 #Depende del micrófono
+    canales = 1 #También depende del micrófono
+
+    # Convert raw audio data to AudioSegment
+    audio_segment = AudioSegment(
+        raw_audio_data,
+        sample_width=audio_data.sample_width,
+        frame_rate=sample_rate,
+        channels=canales
+    )
+    
+    # Export AudioSegment to MP3
+    audio_segment.export(output_filename, format="mp3")
+
+
 
 #-----------------------------------------------------------------------
 #Bucle principal de la Raspberry Pi
@@ -354,7 +392,24 @@ while True:
 
 
             #Diagrama de estado para reconocmiento e identsificación de voz para los comandos 
-
+            while True:
+                with sr.Microphone() as source:
+                    print("Listening...")
+                    audio = recognizer.listen(source)
+                    
+                try:
+                    print("Recognizing...")
+                    text = recognizer.recognize_google(audio, language="es-ES")
+                    print("You said:", text)
+                    if "siéntate" in text:                  
+                        convert_audio_to_mp3(audio, "sientate.mp3")
+                        current_state = State.COMMAND
+                        break
+                
+                except sr.UnknownValueError:
+                    print("Sorry, I couldn't understand what you said.")
+                except sr.RequestError as e:
+                    print("Sorry, there was an error with the speech recognition service:", str(e))
             #Recibe mp3 cada 3s
             #current_state = State.COMMAND
             
