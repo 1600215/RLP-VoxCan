@@ -14,6 +14,16 @@ except serial.serialutil.SerialException:
 
 
 def testSerial():
+    '''The function `testSerial` tests serial communication with an Arduino by sending commands to set and
+    get positions for two axes.
+    
+    Returns
+    -------
+        The function `testSerial()` is returning a boolean value - `True` if the test passed successfully,
+    and `False` if the test failed at any point during the iteration.
+    
+    '''
+    
     print("Testing serial communication with Arduino")
     print("Sending {'command' : Command.SET_POS, 'parametros' : {'0' : 45, '1' : 50} to Arduino")
     
