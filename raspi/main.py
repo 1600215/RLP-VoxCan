@@ -116,7 +116,6 @@ def calcular_desbalanceo(mpu):
     inclinacion_x = math.atan2(acelerometro['y'], acelerometro['z']) * 180 / math.pi
     inclinacion_y = math.atan2(-acelerometro['x'], math.sqrt(acelerometro['y']**2 + acelerometro['z']**2)) * 180 / math.pi
 
-
     # Devolver desbalanceo en ambos ejes
     return inclinacion_x, inclinacion_y
 
@@ -284,12 +283,13 @@ def calibrate_servos(ser, mpu):
 t = time.time()
 
 while True:
-    try: 
-        
+
+    try:
+ 
         #-----------------------------------------------------------------------
         #Estado inicial para realizar conexión con el arduino nano
-        
-        if current_state == State.INITIALIZE:
+
+        if current_state == State.CONNECT:
             #si la conexión con el Arduino Nano está abierta
             if ser.isOpen():
                 
@@ -300,6 +300,23 @@ while True:
                 # Enviar el comazndo de conexión al Arduino 
                 try:
                     if connect(ser):
+                        
+                        try:
+                            GPIO.output(LED_PIN_RED, GPIO.HIGH)
+                            time.sleep(0.5)
+                            GPIO.output(LED_PIN_RED, GPIO.LOW)
+                            GPIO.output(LED_PIN_GREEN, GPIO.HIGH)
+                            time.sleep(0.5)
+                            GPIO.output(LED_PIN_GREEN, GPIO.LOW)
+                            GPIO.output(LED_PIN_YELLOW, GPIO.HIGH)
+                            time.sleep(0.5)
+                            GPIO.output(LED_PIN_YELLOW, GPIO.LOW)
+
+                            print("Conectado con arduino")
+                        except Exception as e:
+                            print("Error al poner el pin GPIO del led amarillo en alto en estado conect", e)
+                            sys.exit(1)
+
                         current_state = State.CALIBRATION
                     else:
                         print("Error al conectar con el Arduino Nano")
@@ -316,10 +333,25 @@ while True:
         #Estado de calibración de los servos
         #Se utiiliza el led amarillo para indicar que se está calibrando los servos
         
-        elif current_state == State.CALIBRATION:
-                  
+        elif current_state == State.SET_INIT:            
+            try:
+                GPIO.output(LED_PIN_YELLOW, GPIO.HIGH)
+                
+                incl_x, incl_y = setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : 135, str(Axis.DERECHO_INF) : 45, str(Axis.IZQUIERDO_SUP) : 100, str(Axis.IZQUIERDO_INF) : 100})
+                print(incl_x, incl_y)
+                
+                GPIO.output(LED_PIN_YELLOW, GPIO.LOW)
+
+                current_state = State.CALIBRATION
+                
+            except Exception as e:
+                print("Error al poner el pin GPIO del led amarillo en bajo y el rojo en alto", e)
+                sys.exit(1)
+            
+            current_state = State.CALIBRATION
+        
+        elif current_state == State.CALIBRATION:  
             try: 
-                GPIO.output(LED_PIN_RED, GPIO.LOW)
                 GPIO.output(LED_PIN_YELLOW, GPIO.HIGH)
                 print("Calibrando servos...")
 
@@ -339,8 +371,8 @@ while True:
             _, _ = setPos(ser, standby_params)
 
             try:
-                GPIO.output(LED_PIN_GREEN, GPIO.HIGH)
-                GPIO.output(LED_PIN_RED, GPIO.LOW)
+                
+                GPIO.output(LED_PIN_YELLOW, GPIO.LOW)
                 
             except Exception as e:
                 print("Error al poner el pin GPIO del led verde en alto y el rojo en bajo", e)

@@ -11,7 +11,7 @@
 
 //Numero de servos
 
-#define NUM_SERVOS 4
+#define NUM_SERVOS 5
 
 
 //Tipos de posiciones de los servos
@@ -57,7 +57,7 @@ class ServoControl {
     int angulo = NULL;
   
   public:
-    ServoControl() {}
+    ServoControl(unit8_t num) {this->servoNum = num;}
     ServoControl(uint8_t num, int ang) {
       this->servoNum = num;
       this->setPosition(ang);
@@ -85,6 +85,7 @@ ServoControl servos[NUM_SERVOS];
 
 void setServosPosition(const JsonObject& parametros) {
   for (JsonPair kv : parametros) {
+    
     const char* nombreServo =kv.key().c_str();
     int nServo = atoi(nombreServo);
     int angulo = kv.value().as<unsigned int>();
@@ -111,17 +112,12 @@ void setup() {
   Serial.begin(9600);
   pwm.begin();
   pwm.setPWMFreq(PWM_FREQUENCY);
-  servos[DERECHO_SUP] = ServoControl(DERECHO_SUP, 110);
-  delay(20);
 
-  servos[IZQUIERDO_SUP] = ServoControl(IZQUIERDO_SUP, 50);
-  delay(2000);
+  servos[DERECHO_SUP] = ServoControl(DERECHO_SUP);
+  servos[IZQUIERDO_SUP] = ServoControl(IZQUIERDO_SUP);
+  servos[DERECHO_INF] = ServoControl(DERECHO_INF);
+  servos[IZQUIERDO_INF] = ServoControl(IZQUIERDO_INF);
 
-  servos[DERECHO_INF] = ServoControl(DERECHO_INF, 130);
-  delay(20);
-
-  servos[IZQUIERDO_INF] = ServoControl(IZQUIERDO_INF, 70);
-  delay(20);
 }
 
 //--------------------------------------------------------------------
@@ -131,13 +127,11 @@ void setup() {
 void loop() {
   if (Serial.available() > 0) {
 
-
     //--------------------------------------------------------------------
     //Lectura del json
 
     String jsonStr = Serial.readStringUntil('\n');
     
-
     // Parsear la cadena JSON en un objeto JSON
     DynamicJsonDocument doc(200);
     DeserializationError error = deserializeJson(doc, jsonStr);
@@ -150,7 +144,6 @@ void loop() {
       Serial.println(serialized);
       return 0;
     }
-
 
     //--------------------------------------------------------------------
     //Lectura de la comanda como entero
@@ -181,7 +174,6 @@ void loop() {
       serializeJson(response, serialized);
       Serial.println(serialized);
       Serial.flush();
-
 
     } else if (nombreCommand == SET_POS) {
       
