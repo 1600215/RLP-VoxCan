@@ -15,9 +15,10 @@ import RPi.GPIO as GPIO
 
 class State:
     INITIALIZE = 0
-    CALIBRATION = 1
-    STANDBY = 2
-    COMMAND = 3
+    SET_INIT = 1
+    CALIBRATION = 2
+    STANDBY = 3
+    COMMAND = 4
 
 class Command:
     CONNECT = 0
@@ -196,7 +197,7 @@ def getPos(ser):
 #-----------------------------------------------------------------------
 #Función para enviar los parámetros de los servos
 
-def setPos(ser,mpu,params):
+def setPos(ser,params):
     '''The function `setPos` sends a command to a serial device, waits for a response, and returns
     calculated values based on the response.
     
@@ -224,10 +225,9 @@ def setPos(ser,mpu,params):
     recv = json.loads(ser.readline().decode().rstrip())
     print(recv)
     if(recv["status"] == Status.OK):
-        incl_x, incl_y = calcular_desbalanceo(mpu)
-        return incl_x, incl_y
+        return True
     
-    return None, None  
+    return False
 
 #-----------------------------------------------------------------------
 #Función para calibrar los servos
@@ -261,7 +261,8 @@ def calibrate_servos(ser, mpu):
             for angulo_eje_3 in axisIS:
                 for angulo_eje_4 in axisII:
                     try:
-                        incl_x, incl_y = setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : angulo_eje_1, str(Axis.DERECHO_INF) : angulo_eje_2, str(Axis.IZQUIERDO_SUP) : angulo_eje_3, str(Axis.IZQUIERDO_INF) : angulo_eje_4})
+                        if setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : angulo_eje_1, str(Axis.DERECHO_INF) : angulo_eje_2, str(Axis.IZQUIERDO_SUP) : angulo_eje_3, str(Axis.IZQUIERDO_INF) : angulo_eje_4}):
+                            incl_x, incl_y = calcular_desbalanceo(mpu)
                              
                         if incl_x is None or incl_y is None:
                             print("Error al enviar los parámetros de los servos")
@@ -317,7 +318,7 @@ while True:
                             print("Error al poner el pin GPIO del led amarillo en alto en estado conect", e)
                             sys.exit(1)
 
-                        current_state = State.CALIBRATION
+                        current_state = State.SET_INIT
                     else:
                         print("Error al conectar con el Arduino Nano")
                         if time.time() - t > 10:
@@ -337,18 +338,21 @@ while True:
             try:
                 GPIO.output(LED_PIN_YELLOW, GPIO.HIGH)
                 
-                incl_x, incl_y = setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : 135, str(Axis.DERECHO_INF) : 45, str(Axis.IZQUIERDO_SUP) : 100, str(Axis.IZQUIERDO_INF) : 100})
-                print(incl_x, incl_y)
+                if setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : 135, str(Axis.DERECHO_INF) : 45, str(Axis.IZQUIERDO_SUP) : 100, str(Axis.IZQUIERDO_INF) : 100}):
+                    print("Posición inicial establecida")
+                
+                else: 
+                    print("Error al establecer la posición inicial")
+                    sys.exit(1)
+                
                 
                 GPIO.output(LED_PIN_YELLOW, GPIO.LOW)
-
                 current_state = State.CALIBRATION
-                
+
             except Exception as e:
                 print("Error al poner el pin GPIO del led amarillo en bajo y el rojo en alto", e)
                 sys.exit(1)
             
-            current_state = State.CALIBRATION
         
         elif current_state == State.CALIBRATION:  
             try: 
