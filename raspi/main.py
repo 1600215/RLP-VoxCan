@@ -8,7 +8,9 @@ import numpy as np
 import RPi.GPIO as GPIO
 import speech_recognition as sr
 from pydub import AudioSegment
-
+import joblib
+import librosa
+import cv2
 
 
 #-----------------------------------------------------------------------
@@ -19,7 +21,8 @@ class State:
     INITIALIZE = 0
     CALIBRATION = 1
     STANDBY = 2
-    COMMAND = 3
+    SIT = 3
+    COME = 4
 
 class Command:
     CONNECT = 0
@@ -52,6 +55,7 @@ LED_PIN_YELLOW = 24
 current_state = State.INITIALIZE
 standby_params = None
 recognizer = sr.Recognizer()
+modelo = joblib.load('modelo_preentrenado.pkl')
 
 #-----------------------------------------------------------------------
 #Inicialización de los pines GPIO de los leds 
@@ -315,6 +319,45 @@ def convert_audio_to_mp3(audio_data, output_filename):
     audio_segment.export(output_filename, format="mp3")
 
 
+def windowing(image, max_size):
+    windows = np.zeros((max_size, image.shape[0]))  # Crear matriz de ventanas con el mismo número de columnas que la imagen
+    for i in np.arange(0, image.shape[1]):
+        windows[ i, :] = image[: , i]
+    return windows
+
+
+def reconocer_comando_voz(audio, modelo):
+    '''The `reconocer_comando_voz` function recognizes voice commands using a pre-trained model and
+    returns the recognized command.
+    
+    Parameters
+    ----------
+    audio
+        The `audio` parameter is the audio data containing the voice command that needs to be
+    recognized. It is passed to the pre-trained model for recognition.
+    modelo
+        The `modelo` parameter is the pre-trained model that is used to recognize the voice command
+    from the audio data.
+    
+    Returns
+    -------
+        The `reconocer_comando_voz` function returns the recognized voice command as a string.
+    
+    '''
+    
+    #Preprocesamiento
+    y, sr = librosa.load(audio)
+    y = librosa.effects.trim(y)[0]
+    image = librosa.feature.melspectrogram(y=y, sr=sr)
+    image = cv2.GaussianBlur(image, (5, 5), 0)
+    windows = windowing(image, 320)
+
+    #Prediccion
+    persona = modelo.predict(windows)
+    
+    return persona
+
+
 
 #-----------------------------------------------------------------------
 #Bucle principal de la Raspberry Pi
@@ -403,8 +446,17 @@ while True:
                     print("You said:", text)
                     if "siéntate" in text:                  
                         convert_audio_to_mp3(audio, "sientate.mp3")
-                        current_state = State.COMMAND
-                        break
+                        persona = reconocer_comando_voz("sientate.mp3", modelo)
+                        if persona == 0 or persona == 1 or persona == 2 or persona == 3:
+                            current_state = State.SIT
+                            break
+                        
+                    elif "ven" in text:                  
+                        convert_audio_to_mp3(audio, "ven.mp3")
+                        persona = reconocer_comando_voz("ven.mp3", modelo)
+                        if persona == 0 or persona == 1 or persona == 2 or persona == 3:
+                            current_state = State.COME
+                            break
                 
                 except sr.UnknownValueError:
                     print("Sorry, I couldn't understand what you said.")
@@ -415,10 +467,25 @@ while True:
             
             
         #-----------------------------------------------------------------------
-        elif current_state == State.COMMAND:
+        elif current_state == State.SIT:
+            try:
+                GPIO.output(LED_PIN_GREEN, GPIO.HIGH)
+                                
+            except Exception as e:
+                print("Error al poner el pin GPIO del led verde en alto", e)
+                sys.exit(1)
+            current_state = State.STANDBY
+        
+        #-----------------------------------------------------------------------
+        elif current_state == State.COME:
+            try:
+                GPIO.output(LED_PIN_RED, GPIO.HIGH)
+                                
+            except Exception as e:
+                print("Error al poner el pin GPIO del led rojo en alto", e)
+                sys.exit(1)
+            current_state = State.STANDBY
 
-                current_state = State.STANDBY
-            
         #-----------------------------------------------------------------------
         else:
             print("Error")
