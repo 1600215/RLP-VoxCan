@@ -319,12 +319,36 @@ def convert_audio_to_mp3(audio_data, output_filename):
     audio_segment.export(output_filename, format="mp3")
 
 
+#-----------------------------------------------------------------------
+#Función para hacer ventana deslizante de una imagen
+
 def windowing(image, max_size):
+    '''The function `windowing` creates a matrix of windows from an image by rearranging its columns.
+    
+    Parameters
+    ----------
+    image
+        The `image` parameter is a 2D numpy array representing an image. Each element in the array
+    corresponds to a pixel value in the image.
+    max_size
+        The `max_size` parameter in the `windowing` function represents the maximum size of the window
+    matrix that will be created. This parameter determines the number of rows in the window matrix,
+    while the number of columns will be the same as the number of columns in the input `image` array.
+    
+    Returns
+    -------
+        a matrix of windows with a maximum size specified by the `max_size` parameter. Each window is a
+    column from the input `image` matrix.
+    
+    '''
     windows = np.zeros((max_size, image.shape[0]))  # Crear matriz de ventanas con el mismo número de columnas que la imagen
     for i in np.arange(0, image.shape[1]):
         windows[ i, :] = image[: , i]
     return windows
 
+
+#-----------------------------------------------------------------------
+#Función para identificar la persona de un audio
 
 def reconocer_comando_voz(audio, modelo):
     '''The `reconocer_comando_voz` function recognizes voice commands using a pre-trained model and
@@ -434,7 +458,7 @@ while True:
             print("Esperando comando desde la Raspberry Pi...")
 
 
-            #Diagrama de estado para reconocmiento e identsificación de voz para los comandos 
+            #Bucle de audio
             while True:
                 with sr.Microphone() as source:
                     print("Listening...")
@@ -461,11 +485,9 @@ while True:
                 except sr.UnknownValueError:
                     print("Sorry, I couldn't understand what you said.")
                 except sr.RequestError as e:
-                    print("Sorry, there was an error with the speech recognition service:", str(e))
-            #Recibe mp3 cada 3s
-            #current_state = State.COMMAND
-            
-            
+                    print("Sorry, there was an error with the speech recognition service:", str(e))            
+
+
         #-----------------------------------------------------------------------
         elif current_state == State.SIT:
             try:
