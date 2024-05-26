@@ -19,6 +19,7 @@ class State:
     CALIBRATION = 2
     STANDBY = 3
     COMMAND = 4
+    FORWARD = 5
 
 class Command:
     CONNECT = 0
@@ -399,6 +400,36 @@ while True:
         elif current_state == State.COMMAND:
 
                 current_state = State.STANDBY
+        
+        #-----------------------------------------------------------------------
+        elif current_state == State.FORWARD:
+            initialPos = getPos(ser)
+            if initialPos is None:
+                print("Error al obtener la posición inicial de los servos")
+                break
+            alpha_0S = initialPos[str(Axis.DERECHO_SUP)]
+            alpha_0I = initialPos[str(Axis.DERECHO_INF)]
+            alpha_3 = 40 #Estimacioooooo sha de comprobar!!!!!!!!!!!!!!!!!!
+            alpha_2 = 10 #Estimacioooooo sha de comprobar!!!!!!!!!!!!!!!!!!
+            alpha_1 = 40 #Estimacioooooo sha de comprobar!!!!!!!!!!!!!!!!!!
+            tiempo_transicion = 0.1
+            #Estado Inicial->1
+            setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : alpha_0S, str(Axis.DERECHO_INF) : alpha_3, str(Axis.IZQUIERDO_SUP) : alpha_0S-10, str(Axis.IZQUIERDO_INF) : alpha_0I})
+            for i in range(5):
+                #Estado 1
+                setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : 20, str(Axis.DERECHO_INF) : 0, str(Axis.IZQUIERDO_SUP) : -20, str(Axis.IZQUIERDO_INF) : 0})
+                time.sleep(tiempo_transicion)
+                #Estado Transicion
+                setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : alpha_2, str(Axis.DERECHO_INF) : 20, str(Axis.IZQUIERDO_SUP) : 0, str(Axis.IZQUIERDO_INF) : alpha_1})
+                time.sleep(tiempo_transicion)
+                #Estado 1 Inverso
+                setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : -20, str(Axis.DERECHO_INF) : 0, str(Axis.IZQUIERDO_SUP) : 20, str(Axis.IZQUIERDO_INF) : 0})
+                time.sleep(tiempo_transicion)
+                #Estado Transicion Inverso
+                setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : 0, str(Axis.DERECHO_INF) : alpha_1, str(Axis.IZQUIERDO_SUP) : alpha_2, str(Axis.IZQUIERDO_INF) : 20})
+                time.sleep(tiempo_transicion)
+            
+            current_state = State.STANDBY
             
         #-----------------------------------------------------------------------
         else:
