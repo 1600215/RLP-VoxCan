@@ -10,7 +10,7 @@ spi = spidev.SpiDev()
 spi.open(0, 0)
 
 # Ruta al directorio de salida
-output_dir = os.path.join(os.path.dirname(__file__), 'audio', 'out')
+output_dir = os.path.join(os.path.dirname(__file__), 'out')
 
 # Verifica si el directorio de salida existe, si no, créalo
 if not os.path.exists(output_dir):
