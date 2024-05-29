@@ -2,6 +2,7 @@ import spidev
 import wave
 import os
 import time
+import signal
 
 # Crea un objeto SPI
 spi = spidev.SpiDev()
@@ -65,8 +66,8 @@ def log_value(value, file):
         file.write(f"Error en la interpretación del valor: {e}\n")
         file.write("\n")
 
-# Función para escribir los datos en archivos de audio
-def write_audio_files(value, file_number):
+# Función para inicializar archivos de audio
+def initialize_audio_files(file_number):
     int_path = os.path.join(base_output_dir, 'int', f'audio_{file_number}.wav')
     float_path = os.path.join(base_output_dir, 'float', f'audio_{file_number}.wav')
     byte_path = os.path.join(base_output_dir, 'byte', f'audio_{file_number}.wav')
@@ -74,28 +75,36 @@ def write_audio_files(value, file_number):
     string_path = os.path.join(base_output_dir, 'string', f'audio_{file_number}.wav')
     percentage_path = os.path.join(base_output_dir, 'percentage', f'audio_{file_number}.wav')
 
+    int_file = wave.open(int_path, 'w')
+    float_file = wave.open(float_path, 'w')
+    byte_file = wave.open(byte_path, 'w')
+    unsigned_int_file = wave.open(unsigned_int_path, 'w')
+    string_file = wave.open(string_path, 'w')
+    percentage_file = wave.open(percentage_path, 'w')
+
+    for audio_file in [int_file, float_file, byte_file, unsigned_int_file, string_file, percentage_file]:
+        audio_file.setnchannels(1)
+        audio_file.setsampwidth(2)
+        audio_file.setframerate(44100)
+    
+    return int_file, float_file, byte_file, unsigned_int_file, string_file, percentage_file
+
+# Función para cerrar archivos de audio
+def close_audio_files(audio_files):
+    for audio_file in audio_files:
+        audio_file.close()
+
+# Función para escribir los datos en archivos de audio
+def write_audio_files(value, audio_files):
     try:
-        # Abrir y escribir en los archivos de audio
-        with wave.open(int_path, 'w') as int_file, \
-             wave.open(float_path, 'w') as float_file, \
-             wave.open(byte_path, 'w') as byte_file, \
-             wave.open(unsigned_int_path, 'w') as unsigned_int_file, \
-             wave.open(string_path, 'w') as string_file, \
-             wave.open(percentage_path, 'w') as percentage_file:
-            
-            # Configurar parámetros de los archivos de audio
-            for audio_file in [int_file, float_file, byte_file, unsigned_int_file, string_file, percentage_file]:
-                audio_file.setnchannels(1)
-                audio_file.setsampwidth(2)
-                audio_file.setframerate(44100)
-                
-            # Convertir y escribir los datos en cada archivo
-            int_file.writeframes(value.to_bytes(2, 'little'))
-            float_file.writeframes(int(float(value)).to_bytes(2, 'little'))
-            byte_file.writeframes(value.to_bytes(2, 'little'))
-            unsigned_int_file.writeframes((value & 0xFFFF).to_bytes(2, 'little'))
-            string_file.writeframes(int(string_value).to_bytes(2, 'little'))
-            percentage_file.writeframes(int(percent_value * 1023 / 100).to_bytes(2, 'little'))
+        int_file, float_file, byte_file, unsigned_int_file, string_file, percentage_file = audio_files
+        
+        int_file.writeframes(value.to_bytes(2, 'little'))
+        float_file.writeframes(int(float(value)).to_bytes(2, 'little'))
+        byte_file.writeframes(value.to_bytes(2, 'little'))
+        unsigned_int_file.writeframes((value & 0xFFFF).to_bytes(2, 'little'))
+        string_file.writeframes(int(value).to_bytes(2, 'little'))
+        percentage_file.writeframes(int((value / 1023.0) * 100 * 1023 / 100).to_bytes(2, 'little'))
             
     except Exception as e:
         print(f"Error escribiendo archivos de audio: {e}")
@@ -105,33 +114,35 @@ sample_rate = 44100  # Frecuencia de muestreo, ajusta esto si es necesario
 num_channels = 1  # Número de canales (1 para mono)
 sample_width = 2  # Ancho de muestra en bytes
 
-start_time = time.time()
+# Manejo de señal para cerrar archivos correctamente al detener el script
+def signal_handler(sig, frame):
+    print('Deteniendo el script y cerrando archivos de audio...')
+    close_audio_files(audio_files)
+    spi.close()
+    exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+
 file_number = 0
+audio_files = initialize_audio_files(file_number)
 
+# Bucle principal para grabar datos continuamente
+print("Comenzando la grabación. Presiona Ctrl+C para detener.")
 while True:
-    # Crea un nuevo archivo cada 15 segundos
-    if time.time() - start_time >= 15:
-        start_time = time.time()
-        file_number += 1
-
-    # Abre el archivo en modo de escritura
-    print(f"Creando archivos de audio para el archivo número: {file_number}")
     try:
-        with open(log_file_path, 'a') as log_file:
-            # Lee y escribe en los archivos durante 15 segundos
-            end_time = start_time + 15
-            while time.time() < end_time:
-                value = read_channel(0)
-                if value is not None:
-                    # Registro del valor leído y sus interpretaciones
-                    log_value(value, log_file)
-                    
-                    # Escribir datos en archivos de audio
-                    write_audio_files(value, file_number)
-                    
-                    # Debug: Mostrar el valor leído
-                    print(f"Valor leído: {value}")
-                else:
-                    print("No se recibió valor del canal SPI")
+        value = read_channel(0)
+        if value is not None:
+            # Escribir datos en archivos de audio
+            write_audio_files(value, audio_files)
+
+            # Registrar el valor leído y sus interpretaciones
+            with open(log_file_path, 'a') as log_file:
+                log_value(value, log_file)
+
+            # Debug: Mostrar el valor leído
+            print(f"Valor leído: {value}")
+        else:
+            print("No se recibió valor del canal SPI")
     except Exception as e:
-        print(f"Error escribiendo el archivo de audio: {e}")
+        print(f"Error en el bucle principal: {e}")
+        break
