@@ -25,7 +25,7 @@ class Axis:
     DELANTERO = 4        
 
 #-----------------------------------------------------------------------
-#Definición de constantes y variables globalesº
+#Definición de constantes
 
 MPU6050_ADDR = 0x68
 
