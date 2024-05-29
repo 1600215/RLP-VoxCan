@@ -10,13 +10,20 @@ from constants import Command, Status, State, Axis, LED_PIN_GREEN, LED_PIN_RED, 
 from modules.connect import connect
 from modules.positions import getPos, setPos, calibrate_servos
 from modules.accel import calcular_desbalanceo
+import speech_recognition as sr
+from pydub import AudioSegment
+import joblib
+import librosa
+import cv2
+
 
 #-----------------------------------------------------------------------
 #Variables globales
 
 current_state = State.INITIALIZE
 standby_params = None
-
+recognizer = sr.Recognizer()
+modelo = joblib.load('modelo_preentrenado.pkl')
 
 #-----------------------------------------------------------------------
 #Inicialización de los pines GPIO de los leds 
@@ -60,7 +67,7 @@ except Exception as e:
     print("Error al inicializar el MPU6050:", e)
     sys.exit(1)
     
-    
+
 #-----------------------------------------------------------------------
 #Bucle principal de la Raspberry Pi
 
@@ -172,17 +179,56 @@ while True:
             print("Esperando comando desde la Raspberry Pi...")
 
 
-            #Diagrama de estado para reconocmiento e identsificación de voz para los comandos 
+            #Bucle de audio
+            while True:
+                with sr.Microphone() as source:
+                    print("Listening...")
+                    audio = recognizer.listen(source)
+                    
+                try:
+                    print("Recognizing...")
+                    text = recognizer.recognize_google(audio, language="es-ES")
+                    print("You said:", text)
+                    if "siéntate" in text:                  
+                        convert_audio_to_mp3(audio, "sientate.mp3")
+                        persona = reconocer_comando_voz("sientate.mp3", modelo)
+                        if persona == 0 or persona == 1 or persona == 2 or persona == 3:
+                            current_state = State.SIT
+                            break
+                        
+                    elif "ven" in text:                  
+                        convert_audio_to_mp3(audio, "ven.mp3")
+                        persona = reconocer_comando_voz("ven.mp3", modelo)
+                        if persona == 0 or persona == 1 or persona == 2 or persona == 3:
+                            current_state = State.COME
+                            break
+                
+                except sr.UnknownValueError:
+                    print("Sorry, I couldn't understand what you said.")
+                except sr.RequestError as e:
+                    print("Sorry, there was an error with the speech recognition service:", str(e))            
 
-            #Recibe mp3 cada 3s
-            #current_state = State.COMMAND
-            
-            
+
         #-----------------------------------------------------------------------
-        elif current_state == State.COMMAND:
+        elif current_state == State.SIT:
+            try:
+                GPIO.output(LED_PIN_GREEN, GPIO.HIGH)
+                                
+            except Exception as e:
+                print("Error al poner el pin GPIO del led verde en alto", e)
+                sys.exit(1)
+            current_state = State.STANDBY
+        
+        #-----------------------------------------------------------------------
+        elif current_state == State.COME:
+            try:
+                GPIO.output(LED_PIN_RED, GPIO.HIGH)
+                                
+            except Exception as e:
+                print("Error al poner el pin GPIO del led rojo en alto", e)
+                sys.exit(1)
+            current_state = State.STANDBY
 
-                current_state = State.STANDBY
-            
         #-----------------------------------------------------------------------
         else:
             print("Error")
