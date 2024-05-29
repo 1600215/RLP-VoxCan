@@ -10,14 +10,24 @@ spi = spidev.SpiDev()
 spi.open(0, 0)
 
 # Ruta al directorio de salida
-output_dir = os.path.join(os.path.dirname(__file__), 'out')
+base_output_dir = os.path.join(os.path.dirname(__file__), 'out')
 
 # Verifica si el directorio de salida existe, si no, créalo
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
+if not os.path.exists(base_output_dir):
+    os.makedirs(base_output_dir)
+
+# Función para crear directorios si no existen
+def create_directory(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 # Configura el archivo de log
-log_file_path = os.path.join(output_dir, 'log.txt')
+log_file_path = os.path.join(base_output_dir, 'log.txt')
+
+# Definir subdirectorios para cada tipo de dato
+subdirs = ['int', 'float', 'byte', 'unsigned_int', 'string', 'percentage']
+for subdir in subdirs:
+    create_directory(os.path.join(base_output_dir, subdir))
 
 def read_channel(channel):
     try:
@@ -55,6 +65,41 @@ def log_value(value, file):
         file.write(f"Error en la interpretación del valor: {e}\n")
         file.write("\n")
 
+# Función para escribir los datos en archivos de audio
+def write_audio_files(value, file_number):
+    int_path = os.path.join(base_output_dir, 'int', f'audio_{file_number}.wav')
+    float_path = os.path.join(base_output_dir, 'float', f'audio_{file_number}.wav')
+    byte_path = os.path.join(base_output_dir, 'byte', f'audio_{file_number}.wav')
+    unsigned_int_path = os.path.join(base_output_dir, 'unsigned_int', f'audio_{file_number}.wav')
+    string_path = os.path.join(base_output_dir, 'string', f'audio_{file_number}.wav')
+    percentage_path = os.path.join(base_output_dir, 'percentage', f'audio_{file_number}.wav')
+
+    try:
+        # Abrir y escribir en los archivos de audio
+        with wave.open(int_path, 'w') as int_file, \
+             wave.open(float_path, 'w') as float_file, \
+             wave.open(byte_path, 'w') as byte_file, \
+             wave.open(unsigned_int_path, 'w') as unsigned_int_file, \
+             wave.open(string_path, 'w') as string_file, \
+             wave.open(percentage_path, 'w') as percentage_file:
+            
+            # Configurar parámetros de los archivos de audio
+            for audio_file in [int_file, float_file, byte_file, unsigned_int_file, string_file, percentage_file]:
+                audio_file.setnchannels(1)
+                audio_file.setsampwidth(2)
+                audio_file.setframerate(44100)
+                
+            # Convertir y escribir los datos en cada archivo
+            int_file.writeframes(value.to_bytes(2, 'little'))
+            float_file.writeframes(int(float(value)).to_bytes(2, 'little'))
+            byte_file.writeframes(value.to_bytes(2, 'little'))
+            unsigned_int_file.writeframes((value & 0xFFFF).to_bytes(2, 'little'))
+            string_file.writeframes(int(string_value).to_bytes(2, 'little'))
+            percentage_file.writeframes(int(percent_value * 1023 / 100).to_bytes(2, 'little'))
+            
+    except Exception as e:
+        print(f"Error escribiendo archivos de audio: {e}")
+
 # Configura el archivo de audio
 sample_rate = 44100  # Frecuencia de muestreo, ajusta esto si es necesario
 num_channels = 1  # Número de canales (1 para mono)
@@ -70,23 +115,19 @@ while True:
         file_number += 1
 
     # Abre el archivo en modo de escritura
-    file_path = os.path.join(output_dir, f'audio_{file_number}.wav')
-    print(f"Creando archivo: {file_path}")
+    print(f"Creando archivos de audio para el archivo número: {file_number}")
     try:
-        with wave.open(file_path, 'w') as audio_file, open(log_file_path, 'a') as log_file:
-            audio_file.setnchannels(num_channels)
-            audio_file.setsampwidth(sample_width)
-            audio_file.setframerate(sample_rate)
-
-            # Lee y escribe en el archivo durante 15 segundos
+        with open(log_file_path, 'a') as log_file:
+            # Lee y escribe en los archivos durante 15 segundos
             end_time = start_time + 15
             while time.time() < end_time:
                 value = read_channel(0)
                 if value is not None:
-                    audio_file.writeframes(value.to_bytes(sample_width, 'little'))
-                    
                     # Registro del valor leído y sus interpretaciones
                     log_value(value, log_file)
+                    
+                    # Escribir datos en archivos de audio
+                    write_audio_files(value, file_number)
                     
                     # Debug: Mostrar el valor leído
                     print(f"Valor leído: {value}")
