@@ -1,0 +1,56 @@
+@startuml Modulos
+
+package "VoxCan" {
+    package "Control de Movimiento" as CM {
+        [Giroscopio]
+        [Acelerómetro]
+        [Unidad de Medición Inercial (IMU)]
+        [Controlador de Servomotores]
+    }
+    
+    package "Procesamiento de Audio y Reconocimiento de Voz" as PARV {
+        [Algoritmos de Procesamiento de Señales de Audio]
+        [Modelo de Reconocimiento de Voz]
+    }
+    
+    package "Interfaz de Usuario y Control de Voz" as IU {
+        [Módulo de Interacción por Voz]
+    }
+    
+    package "Integración de Sensores" as IS {
+        [Sensores de Distancia por Ultrasonidos]
+    }
+    
+    package "Control de LEDs y Altavoz" as CLA {
+        [Control de LEDs]
+        [Control de Altavoz]
+    }
+    
+    package "Gestión de Energía" as GE {
+        [Batería]
+        [Cargador]
+        [Powerbank]
+    }
+    
+    package "Integración de Placas Base" as IPB {
+        [Placa Base Arduino]
+        [Placa Base Raspberry Pi]
+    }
+
+    [Giroscopio] --> [Controlador de Servomotores]
+    [Acelerómetro] --> [Controlador de Servomotores]
+    [Unidad de Medición Inercial (IMU)] --> [Controlador de Servomotores]
+    
+    [Algoritmos de Procesamiento de Señales de Audio] --> [Modelo de Reconocimiento de Voz]
+    [Modelo de Reconocimiento de Voz] --> [Módulo de Interacción por Voz]
+    
+    [Sensores de Distancia por Ultrasonidos] --> [Control de LEDs]
+    [Sensores de Distancia por Ultrasonidos] --> [Control de Altavoz]
+    
+    [Batería] --> [Powerbank]
+    [Cargador] --> [Powerbank]
+    [Powerbank] --> [Placa Base Arduino]
+    [Powerbank] --> [Placa Base Raspberry Pi]
+}
+
+@enduml
