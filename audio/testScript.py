@@ -38,18 +38,12 @@ def log_value(value, file):
         int_value = int(value)
         float_value = float(value)
         byte_value = value.to_bytes(2, 'little')
-        unsigned_int_value = value & 0xFFFF
-        string_value = str(value)
-        percent_value = (value / 1023.0) * 100  # Asumiendo un ADC de 10 bits
-
+        
         file.write(f"Valor leído: {value}\n")
         file.write(f"Interpretación como entero: {int_value}\n")
         file.write(f"Interpretación como flotante: {float_value}\n")
         file.write(f"Interpretación como bytes: {byte_value}\n")
         file.write(f"Bytes en formato hexadecimal: {byte_value.hex()}\n")
-        file.write(f"Interpretación como entero sin signo: {unsigned_int_value}\n")
-        file.write(f"Interpretación como cadena de caracteres: {string_value}\n")
-        file.write(f"Interpretación como porcentaje: {percent_value:.2f}%\n")
         file.write("\n")
     except Exception as e:
         file.write(f"Error en la interpretación del valor: {e}\n")
