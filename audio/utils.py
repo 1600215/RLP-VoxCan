@@ -2,6 +2,12 @@ import spidev
 import time
 
 
+
+    # Configuración SPI
+spi = spidev.SpiDev()
+spi.open(0, 0)  # Abre el bus SPI 0, dispositivo (CS) 0
+spi.max_speed_hz = 1350000  # Ajusta la velocidad del reloj SPI si es necesario
+
 def read_adc(channel, spi):
     adc = spi.xfer2([1, (8 + channel) << 4, 0])
     data = ((adc[1] & 3) << 8) + adc[2]
@@ -45,10 +51,6 @@ def estimate_sample_rate(duration=5):
 
 if __name__ == "__main__":
     
-    # Configuración SPI
-    spi = spidev.SpiDev()
-    spi.open(0, 0)  # Abre el bus SPI 0, dispositivo (CS) 0
-    spi.max_speed_hz = 1350000  # Ajusta la velocidad del reloj SPI si es necesario
 
     print("Estimación del sample rate del MCP3008...")
     sample_rate = estimate_sample_rate()
