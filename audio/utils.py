@@ -26,7 +26,7 @@ def estimate_sample_rate(spi, duration=5):
     num_initial_samples = 1000
     start_time = time.time()
     for _ in range(num_initial_samples):
-        read_adc(0)
+        read_adc(0, spi)
     end_time = time.time()
     
     # Calcula el tiempo promedio de una lectura
@@ -39,7 +39,7 @@ def estimate_sample_rate(spi, duration=5):
     # Captura los datos para la duración especificada
     start_time = time.time()
     for _ in range(num_samples):
-        read_adc(0)
+        read_adc(0, spi)
     end_time = time.time()
     
     # Calcula el sample rate
