@@ -1,67 +1,48 @@
-import spidev
-import time
-import wave
+import sounddevice as sd
 import numpy as np
-import signal
-import sys
+import wave
+import keyboard
+import datetime
+import threading
 
-# Inicializar SPI
-spi = spidev.SpiDev()
-spi.open(0, 0)  # Bus SPI 0, dispositivo CS 0
-spi.max_speed_hz = 1350000  # Velocidad máxima del bus SPI
+def save_audio(audio_data, samplerate=44100):
+    # Genera un nombre de archivo basado en la fecha y hora actual
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"audio_{current_time}.wav"
 
-# Parámetros de grabación
-sample_rate = 8000  # Frecuencia de muestreo (Hz)
-num_samples = sample_rate * 10  # Número de muestras a grabar (10 segundos por defecto)
-
-# Almacenar las lecturas del canal
-samples = []
-
-# Función para leer un canal del MCP3008
-def read_channel(channel):
-    adc = spi.xfer2([1, (8 + channel) << 4, 0])
-    data = ((adc[1] & 3) << 8) + adc[2]
-    return data
-
-# Función para manejar la interrupción
-def signal_handler(sig, frame):
-    print("\nInterrupción recibida, guardando el archivo...")
-    save_audio_file(samples)
-    spi.close()
-    sys.exit(0)
-
-# Función para guardar los datos en un archivo WAV
-def save_audio_file(samples):
-    output_file = "audio.wav"
-    # Convertir las muestras a un rango de -32768 a 32767 para WAV
-    samples = np.array(samples)
-    samples = (samples - np.mean(samples)) / np.max(np.abs(samples))  # Normalizar
-    samples = (samples * 32767).astype(np.int16)
-    
-    with wave.open(output_file, 'w') as wf:
+    # Guarda los datos en un archivo WAV
+    with wave.open(filename, 'wb') as wf:
         wf.setnchannels(1)  # Mono
         wf.setsampwidth(2)  # 2 bytes (16 bits)
-        wf.setframerate(sample_rate)
-        wf.writeframes(samples.tobytes())
-    print(f"Archivo guardado: {output_file}")
+        wf.setframerate(samplerate)
+        wf.writeframes(audio_data.tobytes())
 
-# Registrar la función de manejo de señal
-signal.signal(signal.SIGINT, signal_handler)
+    print(f"Audio guardado como '{filename}'.")
 
-def main():
-    print("MCP3008 audio recording test.")
-    start_time = time.time()
-    
-    while True:
-        value = read_channel(0)
-        samples.append(value)
-        if len(samples) >= num_samples:
-            print("\nSe ha alcanzado el número máximo de muestras.")
-            break
-        time.sleep(1.0 / sample_rate)  # Ajustar el intervalo de muestreo
+def record_audio():
+    # Lista para almacenar los fragmentos de audio
+    audio_data = []
 
-    save_audio_file(samples)
+    def callback(indata, frames, time, status):
+        audio_data.append(indata.copy())
+
+    # Inicia la grabación continua
+    with sd.InputStream(samplerate=44100, channels=1, dtype='int16', callback=callback):
+        print("Grabando audio continuamente... Presiona Ctrl+S para guardar y comenzar una nueva grabación. Presiona Ctrl+C para detener.")
+        
+        while True:
+            sd.sleep(100)
+            if keyboard.is_pressed('ctrl+s'):
+                # Combina los fragmentos de audio en un solo array
+                audio_data_combined = np.concatenate(audio_data, axis=0)
+                # Guarda la grabación actual
+                save_audio(audio_data_combined)
+                # Reinicia la lista para la nueva grabación
+                audio_data = []
+                print("Nueva grabación iniciada...")
+            if keyboard.is_pressed('ctrl+c'):
+                print("Proceso detenido.")
+                break
 
 if __name__ == "__main__":
-    main()
-
+    record_audio()

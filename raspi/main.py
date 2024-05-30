@@ -6,7 +6,7 @@ import mpu6050
 import sys
 import numpy as np
 import RPi.GPIO as GPIO
-from constants import Command, Status, State, Axis, LED_PIN_GREEN, LED_PIN_RED, LED_PIN_YELLOW, MPU6050_ADDR
+from constants import Comºmand, Status, State, Axis, LED_PIN_GREEN, LED_PIN_RED, LED_PIN_YELLOW, MPU6050_ADDR
 from modules.connect import connect
 from modules.positions import getPos, setPos, calibrate_servos
 from modules.accel import calcular_desbalanceo
