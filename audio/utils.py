@@ -13,7 +13,7 @@ def read_adc(channel, spi):
     data = ((adc[1] & 3) << 8) + adc[2]
     return data
 
-def estimate_sample_rate(duration=5):
+def estimate_sample_rate(spi, duration=5):
     """Estima el sample rate capturando datos del MCP3008 durante una duración especificada.
 
     Args:
@@ -52,9 +52,8 @@ def estimate_sample_rate(duration=5):
     
 
 print("Estimación del sample rate del MCP3008...")
-sample_rate = estimate_sample_rate()
+sample_rate = estimate_sample_rate(spi)
 print(f"Sample rate estimado: {sample_rate} Hz")
 
-# Cierra la conexión SPI
 spi.close()
     
