@@ -1,10 +1,10 @@
 import spidev
 import time
-import wave
 import numpy as np
 import signal
 import sys
-
+from pydub import AudioSegment
+import wave
 # Inicializar SPI
 spi = spidev.SpiDev()
 spi.open(0, 0)  # Bus SPI 0, dispositivo CS 0
@@ -30,19 +30,25 @@ def signal_handler(sig, frame):
     spi.close()
     sys.exit(0)
 
-# Función para guardar los datos en un archivo WAV
-def save_audio_file(samples):
-    output_file = "audio.wav"
+# Función para guardar los datos en un archivo MP3
+def save_audio_file(samples, file_index):
+    output_file = f"audio_{file_index}.mp3"
     # Convertir las muestras a un rango de -32768 a 32767 para WAV
     samples = np.array(samples)
     samples = (samples - np.mean(samples)) / np.max(np.abs(samples))  # Normalizar
     samples = (samples * 32767).astype(np.int16)
-    
-    with wave.open(output_file, 'w') as wf:
+
+    # Guardar como WAV temporalmente
+    temp_wav_file = "temp_audio.wav"
+    with wave.open(temp_wav_file, 'w') as wf:
         wf.setnchannels(1)  # Mono
         wf.setsampwidth(2)  # 2 bytes (16 bits)
         wf.setframerate(sample_rate)
         wf.writeframes(samples.tobytes())
+
+    # Convertir de WAV a MP3 usando pydub
+    audio = AudioSegment.from_wav(temp_wav_file)
+    audio.export(output_file, format="mp3")
     print(f"Archivo guardado: {output_file}")
 
 # Registrar la función de manejo de señal
@@ -50,18 +56,21 @@ signal.signal(signal.SIGINT, signal_handler)
 
 def main():
     print("MCP3008 audio recording test.")
+    file_index = 1
     start_time = time.time()
     
     while True:
-        value = read_channel(0)
-        samples.append(value)
-        if len(samples) >= num_samples:
-            print("\nSe ha alcanzado el número máximo de muestras.")
-            break
-        time.sleep(1.0 / sample_rate)  # Ajustar el intervalo de muestreo
+        samples.clear()
+        while len(samples) < num_samples:
+            value = read_channel(0)
+            samples.append(value)
+            time.sleep(1.0 / sample_rate)  # Ajustar el intervalo de muestreo
 
-    save_audio_file(samples)
+        save_audio_file(samples, file_index)
+        file_index += 1
+
+        # Esperar 10 segundos antes de grabar el siguiente segmento
+        time.sleep(10)
 
 if __name__ == "__main__":
     main()
-
