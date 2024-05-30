@@ -5,6 +5,8 @@ import signal
 import sys
 from pydub import AudioSegment
 import wave
+from datetime import datetime
+
 # Inicializar SPI
 spi = spidev.SpiDev()
 spi.open(0, 0)  # Bus SPI 0, dispositivo CS 0
@@ -31,8 +33,11 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 # Función para guardar los datos en un archivo MP3
-def save_audio_file(samples, file_index):
-    output_file = f"audio_{file_index}.mp3"
+def save_audio_file(samples):
+    # Obtener el tiempo actual para el nombre del archivo
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_file = f"audio_{timestamp}.mp3"
+
     # Convertir las muestras a un rango de -32768 a 32767 para WAV
     samples = np.array(samples)
     samples = (samples - np.mean(samples)) / np.max(np.abs(samples))  # Normalizar
@@ -56,8 +61,6 @@ signal.signal(signal.SIGINT, signal_handler)
 
 def main():
     print("MCP3008 audio recording test.")
-    file_index = 1
-    start_time = time.time()
     
     while True:
         samples.clear()
@@ -66,8 +69,7 @@ def main():
             samples.append(value)
             time.sleep(1.0 / sample_rate)  # Ajustar el intervalo de muestreo
 
-        save_audio_file(samples, file_index)
-        file_index += 1
+        save_audio_file(samples)
 
         # Esperar 10 segundos antes de grabar el siguiente segmento
         time.sleep(10)
