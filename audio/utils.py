@@ -3,7 +3,7 @@ import time
 
 
 
-    # Configuración SPI
+# Configuración SPI
 spi = spidev.SpiDev()
 spi.open(0, 0)  # Abre el bus SPI 0, dispositivo (CS) 0
 spi.max_speed_hz = 1350000  # Ajusta la velocidad del reloj SPI si es necesario
@@ -49,13 +49,12 @@ def estimate_sample_rate(duration=5):
     return estimated_sample_rate
 
 
-if __name__ == "__main__":
     
 
-    print("Estimación del sample rate del MCP3008...")
-    sample_rate = estimate_sample_rate()
-    print(f"Sample rate estimado: {sample_rate} Hz")
+print("Estimación del sample rate del MCP3008...")
+sample_rate = estimate_sample_rate()
+print(f"Sample rate estimado: {sample_rate} Hz")
 
-    # Cierra la conexión SPI
-    spi.close()
+# Cierra la conexión SPI
+spi.close()
     
