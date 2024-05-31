@@ -1,9 +1,11 @@
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
+const https = require("https");
 
 const app = express();
-const port = 3000; // Cambia el puerto a 3000
+const port = 3000;
 
 // Configuración de multer para guardar los archivos
 const storage = multer.diskStorage({
@@ -22,6 +24,12 @@ app.post("/upload", upload.single("audio"), (req, res) => {
   res.sendStatus(200);
 });
 
-app.listen(port, () => {
+// Configuración del servidor HTTPS
+const options = {
+  key: fs.readFileSync('key.pem'),
+  cert: fs.readFileSync('cert.pem')
+};
+
+https.createServer(options, app).listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
