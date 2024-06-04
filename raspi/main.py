@@ -18,6 +18,7 @@ import requests
 
 
 
+
 #-----------------------------------------------------------------------
 #Variables globales
 
@@ -190,15 +191,27 @@ while True:
                     ruta_archivo = os.path.join(AUDIO_FOLDER, archivo)
                     
                     try: 
-
+                        
                         res  = predict(audio=ruta_archivo)
                         if res != 4:
-                            print("Comando predicho:", res)
+                            print("Persona predecida:", res)
                         
-                            """
-                            falta añadir diferentes funcionalidades como reconocer 
-                            el ecomando y demás cosas que se necesiten para el robot
-                            """
+                            with sr.AudioFile(ruta_archivo) as source:
+                                # Escuchar el archivo de audio
+                                audio_data = recognizer.record(source)
+                                # Reconocer el audio (usando el servicio de reconocimiento de Google)
+                                try:
+                                    text = recognizer.recognize_google(audio_data, language='es-ES')
+                                    print("Texto reconocido:")
+                                    print(text)
+                                    if "sientate" in text:
+                                        current_state = State.SIT
+                                    elif "ven" in text:
+                                        current_state = State.COME
+                                except sr.UnknownValueError:
+                                    print("Google Speech Recognition no pudo entender el audio")
+                                except sr.RequestError as e:
+                                    print(f"No se pudo solicitar resultados de Google Speech Recognition; {e}")
                             
                             try:
                                 #no hace falta que la llamada sea asíncrona
