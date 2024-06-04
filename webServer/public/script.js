@@ -1,13 +1,7 @@
-function generateToken() {
-  const token = uuidv4();
-  return token;
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   let mediaRecorder;
   let audioChunks = [];
   const recordButton = document.getElementById("recordButton");
-  const title = document.getElementById("title");
 
 
   let recording = false;
@@ -20,12 +14,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const savedToken = localStorage.getItem('token');
   if (savedToken) {
       token = savedToken;
+      recordButton.disabled = true;
       socket.emit('check-token', token);
-  }else{
-        token = generateToken();
-        console.log(token);
-  }
+      console.log("check-token", token);
 
+  }else{
+        token = uuid.v4();
+        localStorage.setItem('token', token);
+        socket.emit('submit-token', token);
+        console.log("submit token ",token);
+  }
+ 
   const handleDataAvailable = (event) => {
       audioChunks.push(event.data);
   };
@@ -35,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
       audioChunks = [];
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.webm");
-      formData.append("name", name);
+      formData.append("token", token);
 
       try {
           const response = await fetch("/upload", {
@@ -112,20 +111,23 @@ document.addEventListener("DOMContentLoaded", () => {
     recordButton.disabled = false;
   });
 
+  socket.on("token-accepted", () => {
+      recordButton.disabled = false;
+  });
+
   socket.on("token-exists", (exists) => {
       if (exists) {
-          alert(`Welcome back, ${token}`);
           if (command) {
               recordButton.disabled = true;
           } else {
               recordButton.disabled = false;
           }
-          title.textContent = `LOGUEADO - ${name}`; // Update title with name
       } else {
-          alert("Your name is not recognized. Please enter your name again.");
-          localStorage.removeItem('token');
-          token = generateToken();
+          token = uuid.v4();
+          localStorage.setItem('token', token);
+          socket.emit('submit-token', token);
           recordButton.disabled = true;
+
       }
   });
 });
