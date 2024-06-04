@@ -1,22 +1,29 @@
+function generateToken() {
+  const token = uuidv4();
+  return token;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   let mediaRecorder;
   let audioChunks = [];
   const recordButton = document.getElementById("recordButton");
-  const submitNameButton = document.getElementById("submitNameButton");
-  const nameInput = document.getElementById("nameInput");
-  const nameSection = document.getElementById("nameSection");
-  const recordSection = document.getElementById("recordSection");
   const title = document.getElementById("title");
+
+
   let recording = false;
-  let name;
+  let token;
+  let command = null;
+
   const socket = io();
 
   // Retrieve name from localStorage
-  const savedName = localStorage.getItem('name');
-
-  if (savedName) {
-      name = savedName;
-      socket.emit('check-name', name);
+  const savedToken = localStorage.getItem('token');
+  if (savedToken) {
+      token = savedToken;
+      socket.emit('check-token', token);
+  }else{
+        token = generateToken();
+        console.log(token);
   }
 
   const handleDataAvailable = (event) => {
@@ -75,42 +82,49 @@ document.addEventListener("DOMContentLoaded", () => {
       }
   });
 
-  submitNameButton.addEventListener("click", () => {
-      const nameValue = nameInput.value.trim();
-      if (nameValue) {
-          name = nameValue;
-          localStorage.setItem('name', name); // Save name in localStorage
-          socket.emit('submit-name', name);
-      } else {
-          alert("Please enter a name.");
-      }
+
+  socket.on("CommandAccepted", (userToken) => {
+    command = userToken;
+    if(token === userToken){
+        alert("Robot is now being used by you");
+        recordButton.disabled = true;
+    }
+    else{
+        alert("Robot is being used by another user");
+        recordButton.disabled = true; 
+    }
   });
 
-  socket.on("name-accepted", (accepted) => {
-      if (accepted) {
-          alert(`Name accepted: ${name}. You can start recording.`);
-          nameSection.style.display = "none";
-          recordSection.style.display = "block";
-          recordButton.disabled = false;
-          title.textContent = `Fogueado - ${name}`; // Update title with name
-      } else {
-          alert("Invalid name. You cannot record.");
-          recordButton.disabled = true;
-      }
+  socket.on("OnCommand", (userToken) => {
+    command = userToken;
+    if(token === userToken){
+        alert("Robot is now being used by you");
+    }
+    else{
+        alert("Robot is being used by another user");
+    }
+    recordButton.disabled = true; 
   });
 
-  socket.on("name-exists", (exists) => {
+  socket.on("commandFinished", () => {
+    command = null;
+    alert("Robot is now available");
+    recordButton.disabled = false;
+  });
+
+  socket.on("token-exists", (exists) => {
       if (exists) {
-          alert(`Welcome back, ${name}. You can start recording.`);
-          nameSection.style.display = "none";
-          recordSection.style.display = "block";
-          recordButton.disabled = false;
-          title.textContent = `Fogueado - ${name}`; // Update title with name
+          alert(`Welcome back, ${token}`);
+          if (command) {
+              recordButton.disabled = true;
+          } else {
+              recordButton.disabled = false;
+          }
+          title.textContent = `LOGUEADO - ${name}`; // Update title with name
       } else {
           alert("Your name is not recognized. Please enter your name again.");
-          localStorage.removeItem('name');
-          nameSection.style.display = "block";
-          recordSection.style.display = "none";
+          localStorage.removeItem('token');
+          token = generateToken();
           recordButton.disabled = true;
       }
   });
