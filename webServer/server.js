@@ -53,6 +53,10 @@ io.on('connection', (socket) => {
         socket.emit('OnCommand', command);
     }
 
+    socket.on('submit-token', (token) => {
+        tokenFiles[token] = [];
+        socket.emit('token-accepted');
+    });
     socket.on('check-token', (token) => {
         const exists = !!tokenFiles[token];
         socket.emit('token-exists', exists);
@@ -66,9 +70,9 @@ io.on('connection', (socket) => {
 
 // Endpoint to handle audio file uploads
 app.post('/upload', upload.single('audio'), (req, res) => {
-    const name = req.body.name;
+    const token = req.body.token;
 
-    if (!userFiles[name]) {
+    if (!tokenFiles[token]) {
         return res.status(401).send('Invalid name');
     }
 
@@ -82,8 +86,8 @@ app.post('/upload', upload.single('audio'), (req, res) => {
             .toFormat('mp3')
             .on('end', () => {
                 fs.unlinkSync(inputFilePath); // Remove original .webm file
-                userFiles[name].push(fileName);
-                console.log(`Audio file uploaded and converted with name: ${name} , file: ${fileName}`);
+                tokenFiles[token].push(fileName);
+                console.log(`Audio file uploaded and converted with name: ${token} , file: ${fileName}`);
                 res.status(200).send(outputFilePath); // Send the file name as response
             })
             .on('error', (err) => {
