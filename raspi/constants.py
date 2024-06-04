@@ -27,6 +27,10 @@ class Axis:
 #-----------------------------------------------------------------------
 #Definición de constantes
 
+AUDIO_FOLDER = "../webServer/uploads"
+SERVER = "http://localhost:3000"
+
+
 MPU6050_ADDR = 0x68
 
 LED_PIN_GREEN = 17  
@@ -36,3 +40,5 @@ LED_PIN_YELLOW = 24
 
 #Sample rate del microfono todavia por descubrir
 SAMPLE_RATE = None
+
+

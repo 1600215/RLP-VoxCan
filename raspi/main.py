@@ -7,14 +7,17 @@ import sys
 import numpy as np
 import RPi.GPIO as GPIO
 from constants import Comºmand, Status, State, Axis, LED_PIN_GREEN, LED_PIN_RED, LED_PIN_YELLOW, MPU6050_ADDR
-from modules.connect import connect
+from modules.connect import connect, AUDIO_FOLDER, SERVER
 from modules.positions import getPos, setPos, calibrate_servos
 from modules.accel import calcular_desbalanceo
+from modules.web import set_command
 import speech_recognition as sr
-from pydub import AudioSegment
 import joblib
-import librosa
-import cv2
+import os
+from voiceIdent import predict
+
+
+
 
 
 #-----------------------------------------------------------------------
@@ -179,35 +182,51 @@ while True:
             print("Esperando comando desde la Raspberry Pi...")
 
 
-            #Bucle de audio
-            while True:
-                with sr.Microphone() as source:
-                    print("Listening...")
-                    audio = recognizer.listen(source)
+            # Obtener la lista de archivos en la carpeta
+            archivos = os.listdir(AUDIO_FOLDER)
+            
+            # Verificar si hay nuevos archivos MP3
+            for archivo in archivos:
+                if archivo.lower().endswith('.mp3'):
+                    print(f"Nuevo archivo MP3 detectado: {archivo}")
+                    ruta_archivo = os.path.join(AUDIO_FOLDER, archivo)
                     
-                try:
-                    print("Recognizing...")
-                    text = recognizer.recognize_google(audio, language="es-ES")
-                    print("You said:", text)
-                    if "siéntate" in text:                  
-                        convert_audio_to_mp3(audio, "sientate.mp3")
-                        persona = reconocer_comando_voz("sientate.mp3", modelo)
-                        if persona == 0 or persona == 1 or persona == 2 or persona == 3:
-                            current_state = State.SIT
-                            break
+                    try: 
                         
-                    elif "ven" in text:                  
-                        convert_audio_to_mp3(audio, "ven.mp3")
-                        persona = reconocer_comando_voz("ven.mp3", modelo)
-                        if persona == 0 or persona == 1 or persona == 2 or persona == 3:
-                            current_state = State.COME
-                            break
-                
-                except sr.UnknownValueError:
-                    print("Sorry, I couldn't understand what you said.")
-                except sr.RequestError as e:
-                    print("Sorry, there was an error with the speech recognition service:", str(e))            
+                        res  = predict(audio=ruta_archivo)
+                        if res != 4:
+                            print("Persona predecida:", res)
+                        
+                            with sr.AudioFile(ruta_archivo) as source:
+                                # Escuchar el archivo de audio
+                                audio_data = recognizer.record(source)
+                                # Reconocer el audio (usando el servicio de reconocimiento de Google)
+                                try:
+                                    text = recognizer.recognize_google(audio_data, language='es-ES')
+                                    print("Texto reconocido:")
+                                    print(text)
+                                    if "sientate" in text:
+                                        set_command(ruta_archivo)
+                                        current_state = State.SIT
+                                    elif "ven" in text:
+                                        set_command(ruta_archivo)
+                                        current_state = State.COME
+                                except sr.UnknownValueError:
+                                    
+                                    print("Google Speech Recognition no pudo entender el audio")
+                                except sr.RequestError as e:
+                                    print(f"No se pudo solicitar resultados de Google Speech Recognition; {e}")
+                            
+                    except Exception as e:
+                        print("Error al predecir el comando de voz:", e)
+                    
+                    try:
+                        os.remove(ruta_archivo)
+                        print(f"Archivo {archivo} eliminado correctamente.")
+                    except Exception as e:
+                        print(f"Error al eliminar el archivo {archivo}: {e}")
 
+            time.sleep(1)
 
         #-----------------------------------------------------------------------
         elif current_state == State.SIT:
