@@ -10,11 +10,12 @@ from constants import Comºmand, Status, State, Axis, LED_PIN_GREEN, LED_PIN_RED
 from modules.connect import connect, AUDIO_FOLDER, SERVER
 from modules.positions import getPos, setPos, calibrate_servos
 from modules.accel import calcular_desbalanceo
+from modules.web import set_command
 import speech_recognition as sr
 import joblib
 import os
 from voiceIdent import predict
-import requests
+
 
 
 
@@ -205,24 +206,17 @@ while True:
                                     print("Texto reconocido:")
                                     print(text)
                                     if "sientate" in text:
+                                        set_command(ruta_archivo)
                                         current_state = State.SIT
                                     elif "ven" in text:
+                                        set_command(ruta_archivo)
                                         current_state = State.COME
                                 except sr.UnknownValueError:
+                                    
                                     print("Google Speech Recognition no pudo entender el audio")
                                 except sr.RequestError as e:
                                     print(f"No se pudo solicitar resultados de Google Speech Recognition; {e}")
                             
-                            try:
-                                #no hace falta que la llamada sea asíncrona
-                                response = requests.post(SERVER + '/set-command', json={'filename': archivo})
-                                if response.status_code == 200:
-                                    print(f"Nombre de archivo '{archivo}' enviado al servidor correctamente.")
-                                else:
-                                    print(f"Error al enviar el nombre de archivo '{archivo}' al servidor. Código de estado: {response.status_code}")                                
-                            except Exception as e:
-                                print(f"Error al enviar el nombre de archivo '{archivo}' al servidor o al eliminar el archivo: {e}")
-
                     except Exception as e:
                         print("Error al predecir el comando de voz:", e)
                     
