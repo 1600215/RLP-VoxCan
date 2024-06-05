@@ -12,8 +12,6 @@ from modules.positions import setPos
 from modules.audio import process_files, cleanup_files
 from modules.calibrate import calibrate_servos
 from modules.web import finish_command
-
-
 import asyncio
 
 

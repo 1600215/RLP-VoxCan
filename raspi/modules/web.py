@@ -26,4 +26,3 @@ async def finish_command():
             else:
                 print("Error al finalizar el comando:", await response.text())
 
-

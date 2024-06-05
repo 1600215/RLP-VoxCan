@@ -359,6 +359,7 @@ def predict(algorithm='windowing', dataType='ruido', model='svm', filter=False, 
         features = scaler.transform(features)
         y_pred = model.predict(features)
         return y_pred[0]
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Predict output from audio file.')
