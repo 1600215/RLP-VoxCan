@@ -16,9 +16,8 @@ spi.max_speed_hz = 1350000  # Velocidad máxima del bus SPI
 sample_rate = 4000  # Frecuencia de muestreo (Hz)
 num_samples = sample_rate * 10  # Número de muestras a grabar (10 segundos por defecto)
 
-# Almacenar las lecturas del canal
-samples = []
-
+# Almacenar las lecturas de los canales
+samples = {0: [], 1: [], 7: []}
 
 # Función para leer un canal del MCP3008
 def read_channel(channel):
@@ -28,16 +27,17 @@ def read_channel(channel):
 
 # Función para manejar la interrupción
 def signal_handler(sig, frame):
-    print("\nInterrupción recibida, guardando el archivo...")
-    save_audio_file(samples)
+    print("\nInterrupción recibida, guardando los archivos...")
+    for channel in samples:
+        save_audio_file(samples[channel], channel)
     spi.close()
     sys.exit(0)
 
 # Función para guardar los datos en un archivo MP3
-def save_audio_file(samples):
+def save_audio_file(samples, channel):
     # Obtener el tiempo actual para el nombre del archivo
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_file = f"audio_{timestamp}.mp3"
+    output_file = f"audio_channel_{channel}_{timestamp}.mp3"
 
     # Convertir las muestras a un rango de -32768 a 32767 para WAV
     samples = np.array(samples)
@@ -45,7 +45,7 @@ def save_audio_file(samples):
     samples = (samples * 32767).astype(np.int16)
 
     # Guardar como WAV temporalmente
-    temp_wav_file = "temp_audio.wav"
+    temp_wav_file = f"temp_audio_channel_{channel}.wav"
     with wave.open(temp_wav_file, 'w') as wf:
         wf.setnchannels(1)  # Mono
         wf.setsampwidth(2)  # 2 bytes (16 bits)
@@ -62,16 +62,23 @@ signal.signal(signal.SIGINT, signal_handler)
 
 def main():
     print("MCP3008 audio recording test.")
-    
+
     while True:
-        samples.clear()
-        while len(samples) < num_samples:
-            value = read_channel(8)
-            samples.append(value)
+        # Limpiar las muestras anteriores
+        for channel in samples:
+            samples[channel].clear()
+        
+        # Grabar nuevas muestras
+        while len(samples[0]) < num_samples and len(samples[1]) < num_samples and len(samples[7]) < num_samples:
+            for channel in samples:
+                value = read_channel(channel)
+                samples[channel].append(value)
 
             time.sleep(1.0 / sample_rate)  # Ajustar el intervalo de muestreo
 
-        save_audio_file(samples)
+        # Guardar archivos de cada canal
+        for channel in samples:
+            save_audio_file(samples[channel], channel)
 
         # Esperar 10 segundos antes de grabar el siguiente segmento
         time.sleep(10)
