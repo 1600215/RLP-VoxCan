@@ -6,7 +6,9 @@ class State:
     SET_INIT = 1
     CALIBRATION = 2
     STANDBY = 3
-    COMMAND = 4
+    SIT = 4
+    COME = 5
+    
 
 class Command:
     CONNECT = 0
