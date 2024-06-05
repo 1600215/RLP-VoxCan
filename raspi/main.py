@@ -6,51 +6,27 @@ import mpu6050
 import sys
 import numpy as np
 import RPi.GPIO as GPIO
+from constants import Comºmand, Status, State, Axis, LED_PIN_GREEN, LED_PIN_RED, LED_PIN_YELLOW, MPU6050_ADDR
+from modules.connect import connect, AUDIO_FOLDER, SERVER
+from modules.positions import getPos, setPos, calibrate_servos
+from modules.accel import calcular_desbalanceo
+from modules.web import set_command
+import speech_recognition as sr
+import joblib
+import os
+from voiceIdent import predict
 
 
 
-#-----------------------------------------------------------------------
-#Estados de nuestra maquina de estados del robot VOXCAN
-# The above code defines classes for state, command, status, and axis constants in a Python program.
-
-class State:
-    INITIALIZE = 0
-    SET_INIT = 1
-    CALIBRATION = 2
-    STANDBY = 3
-    COMMAND = 4
-
-class Command:
-    CONNECT = 0
-    GET_POS = 1
-    SET_POS = 2
-    
-class Status:
-    OK = 0
-    ERROR = 1
-    
-class Axis:
-    DERECHO_SUP = 0
-    DERECHO_INF = 1
-    IZQUIERDO_SUP = 2
-    IZQUIERDO_INF = 3
-    DELANTERO = 4        
 
 
 #-----------------------------------------------------------------------
-#Definición de constantes y variables globalesº
-
-
-MPU6050_ADDR = 0x68
-
-LED_PIN_GREEN = 17  
-LED_PIN_RED = 18
-LED_PIN_YELLOW = 24
-
+#Variables globales
 
 current_state = State.INITIALIZE
 standby_params = None
-
+recognizer = sr.Recognizer()
+modelo = joblib.load('modelo_preentrenado.pkl')
 
 #-----------------------------------------------------------------------
 #Inicialización de los pines GPIO de los leds 
@@ -86,6 +62,7 @@ except Exception as e:
 
 #-----------------------------------------------------------------------
 #Inicialización del MPU6050
+
 try:
     mpu = mpu6050.mpu6050(MPU6050_ADDR)
     
@@ -93,190 +70,6 @@ except Exception as e:
     print("Error al inicializar el MPU6050:", e)
     sys.exit(1)
     
-    
-
-
-#-----------------------------------------------------------------------
-#Función para caluclar el desbalanceo en los ejes x y y
-
-def calcular_desbalanceo(mpu):
-    '''This Python function calculates the imbalance in both x and y axes based on accelerometer data.
-    
-    Returns
-    -------
-        The function `calcular_desbalanceo` is returning the angles of inclination in both the x and y axes
-    calculated from the accelerometer data. The values `inclinacion_x` and `inclinacion_y` represent the
-    tilt angles in degrees for the x and y axes respectively.
-    
-    '''
-    
-    # Leer datos del acelerómetro y el giroscopio
-    acelerometro = mpu.get_accel_data()
-
-    # Calcular ángulo de inclinación en cada eje a partir del acelerómetro
-    inclinacion_x = math.atan2(acelerometro['y'], acelerometro['z']) * 180 / math.pi
-    inclinacion_y = math.atan2(-acelerometro['x'], math.sqrt(acelerometro['y']**2 + acelerometro['z']**2)) * 180 / math.pi
-
-    # Devolver desbalanceo en ambos ejes
-    return inclinacion_x, inclinacion_y
-
-
-#-----------------------------------------------------------------------
-#Función para enviar el comando de conexión al arduino nano
-
-def connect(ser):
-    '''The `connect` function establishes communication with an Arduino Nano and returns True if
-    successful, otherwise returns False.
-    
-    Returns
-    -------
-        The `connect()` function returns a boolean value - `True` if the communication with the Arduino
-    Nano was successful and it is connected, and `False` if there was an error in communication or the
-    connection was not successful.
-    
-    '''
-
-    res = {'command' : Command.CONNECT}
-    ser.write(json.dumps(res).encode('utf-8'))
-    ser.flush()
-                    
-    while ser.in_waiting == 0:
-        pass
-                    
-    recv = ser.readline().decode('utf-8').rstrip()
-    
-    
-    try:
-        recv = json.loads(recv)
-    except:    
-        print("Error al cargar el json - volvemos a intentar")
-        return False
-        
-    if "status" in recv and recv["status"] == Status.OK:
-        print("Arduino Nano comunicado")
-        return True
-                    
-    print("Error al comunicar con el Arduino Nano - volvemos a intentar")
-    return False
-    
-
-#-----------------------------------------------------------------------
-#Función para obtener la posición de los servos
-
-def getPos(ser):
-    '''The `getPos` function sends a command to a serial device to retrieve position data and returns the
-    initial position received.
-    
-    Returns
-    -------
-        The `getPos()` function returns the initial position received from the serial port after sending a
-    command to get the position.
-    
-    {"0" : 90, "1" : 90, "2" : 90, "3" : 90, "4" : 90}
-    
-    '''
-    
-    command = {'command': Command.GET_POS}
-    ser.write((json.dumps(command) + '\n').encode('utf-8'))
-    ser.flush()
-                
-    while ser.in_waiting == 0:
-        pass
-    try:
-        initialPos = json.loads(ser.readline().decode().rstrip())
-    except:
-        print("Error al cargar el json")
-        return None
-    
-    if "status" in initialPos and initialPos["status"] == Status.OK:
-        return initialPos['posiciones']
-    
-    return None         
-
-
-#-----------------------------------------------------------------------
-#Función para enviar los parámetros de los servos
-
-def setPos(ser,params):
-    '''The function `setPos` sends a command to a serial device, waits for a response, and returns
-    calculated values based on the response.
-    
-    Parameters
-    ----------
-    params
-        It seems like the code snippet you provided is a function named `setPos` that sends a command to a
-    serial device, waits for a response, and then processes the response based on the status received.
-    
-    Returns
-    -------
-        The function `setPos` is returning a tuple of values `incl_x, incl_y` if the received status is
-    `RECIVED`. Otherwise, it returns `None, None`.
-    
-    '''
-    
-    command = {'command': Command.SET_POS, 'parametros': params}
-    
-    ser.write((json.dumps(command)+ '\n').encode('utf-8'))
-    ser.flush()
-                
-    while ser.in_waiting == 0:
-        pass
-    
-    recv = json.loads(ser.readline().decode().rstrip())
-    print(recv)
-    if(recv["status"] == Status.OK):
-        return True
-    
-    return False
-
-#-----------------------------------------------------------------------
-#Función para calibrar los servos
-
-def calibrate_servos(ser, mpu):
-    '''This Python function calibrates servo motors by iterating through different angles for each axis and
-    finding the configuration that minimizes the sum of inclinations in the x and y directions.
-    
-    Returns
-    -------
-        The function `calibrate_servos` is returning a dictionary `config` containing the calibrated
-    positions for each servo axis (DERECHO_SUP, DERECHO_INF, IZQUIERDO_SUP, IZQUIERDO_INF) that resulted
-    in the minimum absolute sum of inclinations in the x and y directions.
-    
-    '''
-    min = sys.float_info.max
-    config = None
-    initialPos = getPos(ser)  
-    
-    if initialPos is None:
-        print("Error al obtener la posición inicial de los servos")
-        return None
-    
-    axisDS = np.arange(initialPos[str(Axis.DERECHO_SUP)] - 10, initialPos[str(Axis.DERECHO_SUP)] + 10, 1) 
-    axisDI= np.arange(initialPos[str(Axis.DERECHO_INF)] - 10, initialPos[str(Axis.DERECHO_INF)] + 10, 1)   
-    axisIS = np.arange(initialPos[str(Axis.IZQUIERDO_SUP)] - 10, initialPos[str(Axis.IZQUIERDO_SUP)] + 10, 1)   
-    axisII = np.arange(initialPos[str(Axis.IZQUIERDO_INF)] - 10, initialPos[str(Axis.IZQUIERDO_INF)] + 10, 1)  
-
-    for angulo_eje_1 in axisDS:
-        for angulo_eje_2 in axisDI:
-            for angulo_eje_3 in axisIS:
-                for angulo_eje_4 in axisII:
-                    try:
-                        if setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : angulo_eje_1, str(Axis.DERECHO_INF) : angulo_eje_2, str(Axis.IZQUIERDO_SUP) : angulo_eje_3, str(Axis.IZQUIERDO_INF) : angulo_eje_4}):
-                            incl_x, incl_y = calcular_desbalanceo(mpu)
-                             
-                        if incl_x is None or incl_y is None:
-                            print("Error al enviar los parámetros de los servos")
-                            sys.exit(1)
-                                    
-                        if abs(incl_x) + abs(incl_y) < min:
-                            min = abs(incl_x) + abs(incl_y)
-                            config = {str(Axis.DERECHO_SUP) : angulo_eje_1, str(Axis.DERECHO_INF) : angulo_eje_2, str(Axis.IZQUIERDO_SUP) : angulo_eje_3, str(Axis.IZQUIERDO_INF) : angulo_eje_4}
-                                    
-                    except Exception as e:
-                        print("Error al enviar los parámetros de los servos:", e)
-                        sys.exit(1)
-    return None
-
 
 #-----------------------------------------------------------------------
 #Bucle principal de la Raspberry Pi
@@ -389,17 +182,72 @@ while True:
             print("Esperando comando desde la Raspberry Pi...")
 
 
-            #Diagrama de estado para reconocmiento e identsificación de voz para los comandos 
+            # Obtener la lista de archivos en la carpeta
+            archivos = os.listdir(AUDIO_FOLDER)
+            
+            # Verificar si hay nuevos archivos MP3
+            for archivo in archivos:
+                if archivo.lower().endswith('.mp3'):
+                    print(f"Nuevo archivo MP3 detectado: {archivo}")
+                    ruta_archivo = os.path.join(AUDIO_FOLDER, archivo)
+                    
+                    try: 
+                        
+                        res  = predict(audio=ruta_archivo)
+                        if res != 4:
+                            print("Persona predecida:", res)
+                        
+                            with sr.AudioFile(ruta_archivo) as source:
+                                # Escuchar el archivo de audio
+                                audio_data = recognizer.record(source)
+                                # Reconocer el audio (usando el servicio de reconocimiento de Google)
+                                try:
+                                    text = recognizer.recognize_google(audio_data, language='es-ES')
+                                    print("Texto reconocido:")
+                                    print(text)
+                                    if "sientate" in text:
+                                        set_command(ruta_archivo)
+                                        current_state = State.SIT
+                                    elif "ven" in text:
+                                        set_command(ruta_archivo)
+                                        current_state = State.COME
+                                except sr.UnknownValueError:
+                                    
+                                    print("Google Speech Recognition no pudo entender el audio")
+                                except sr.RequestError as e:
+                                    print(f"No se pudo solicitar resultados de Google Speech Recognition; {e}")
+                            
+                    except Exception as e:
+                        print("Error al predecir el comando de voz:", e)
+                    
+                    try:
+                        os.remove(ruta_archivo)
+                        print(f"Archivo {archivo} eliminado correctamente.")
+                    except Exception as e:
+                        print(f"Error al eliminar el archivo {archivo}: {e}")
 
-            #Recibe mp3 cada 3s
-            #current_state = State.COMMAND
-            
-            
+            time.sleep(1)
+
         #-----------------------------------------------------------------------
-        elif current_state == State.COMMAND:
+        elif current_state == State.SIT:
+            try:
+                GPIO.output(LED_PIN_GREEN, GPIO.HIGH)
+                                
+            except Exception as e:
+                print("Error al poner el pin GPIO del led verde en alto", e)
+                sys.exit(1)
+            current_state = State.STANDBY
+        
+        #-----------------------------------------------------------------------
+        elif current_state == State.COME:
+            try:
+                GPIO.output(LED_PIN_RED, GPIO.HIGH)
+                                
+            except Exception as e:
+                print("Error al poner el pin GPIO del led rojo en alto", e)
+                sys.exit(1)
+            current_state = State.STANDBY
 
-                current_state = State.STANDBY
-            
         #-----------------------------------------------------------------------
         else:
             print("Error")
