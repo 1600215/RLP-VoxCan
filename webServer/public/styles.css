@@ -27,11 +27,15 @@ h1 {
 }
 
 #recordButton {
-    background-color: #4CAF50;
+    background-color: green;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+}
+
+#recordButton.stop-recording {
+    background-color: red;
 }
 
 #recordButton:disabled {
