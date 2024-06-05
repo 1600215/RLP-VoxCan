@@ -1,46 +1,16 @@
-import os
-import sys
-import time
-import aiohttp
-import asyncio
-import random
+
 import speech_recognition as sr
 from pydub import AudioSegment
 import io
+import sys, os
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from modules.web import set_command
 
-from constants import State
 
-AUDIO_FOLDER = '../../../webServer/uploads'  # Cambia esto por la ruta de tu carpeta de destino
-SERVER_URL = 'http://localhost:3000'
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-async def predict(audio):
-    await asyncio.sleep(4)
-    r = random.random()
-    if r < 0.2:
-        return 4
-    else:
-        return random.choice([0, 1, 2, 3])
-
-async def set_command(file_path, person, text):
-    print("Enviando comando...", file_path, person, text)
-    data = {'filename': os.path.basename(file_path), 'person': person, 'text': text}
-    async with aiohttp.ClientSession() as session:
-        async with session.post(f'{SERVER_URL}/set-command', data=data) as response:
-            if response.status == 200:
-                print("Comando enviado correctamente:", await response.text())
-            else:
-                print("Error al enviar el comando:", await response.text())
-
-async def finish_command():
-    async with aiohttp.ClientSession() as session:
-        print("Finalizando comando...")
-        async with session.post(f'{SERVER_URL}/finish-command') as response:
-            if response.status == 200:
-                print("Comando finalizado correctamente")
-            else:
-                print("Error al finalizar el comando:", await response.text())
+from constants import State, AUDIO_FOLDER
+from voiceIdent import predict
 
 
 async def recognize_audio_from_file(file_path):
@@ -78,6 +48,7 @@ async def recognize_audio_from_file(file_path):
             except sr.RequestError as e:
                 print(f"No se pudo solicitar resultados de Google Speech Recognition; {e}")
 
+
 async def process_files():
     archivos = os.listdir(AUDIO_FOLDER)
     for archivo in archivos:
@@ -97,24 +68,6 @@ async def process_files():
 
     return None
 
-async def main():
-    current_state = 'STANDBY'
-    while True:
-        if current_state == 'STANDBY':
-            print("Esperando comando desde la Raspberry Pi...")
-            ret = await process_files()
-            if ret:
-                current_state = 'PROCESSING'
-            await asyncio.sleep(1)
-        elif current_state == 'PROCESSING':
-            print("Procesando comando...")
-            time.sleep(20)
-            await finish_command()
-            current_state = 'STANDBY'
-            await cleanup_files()   
-
-
-
 
 async def cleanup_files():
     archivos = os.listdir(AUDIO_FOLDER)
@@ -126,5 +79,3 @@ async def cleanup_files():
                 print(f"Archivo {archivo} eliminado correctamente.")
             except Exception as e:
                 print(f"Error al eliminar el archivo {archivo}: {e}")
-
-asyncio.run(main())
