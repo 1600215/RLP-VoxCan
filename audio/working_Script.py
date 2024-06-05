@@ -18,6 +18,9 @@ num_samples = sample_rate * 10  # Número de muestras a grabar (10 segundos por 
 
 # Almacenar las lecturas del canal
 samples = []
+samples_mic2 = []
+samples_mic8 = []
+
 
 # Función para leer un canal del MCP3008
 def read_channel(channel):
@@ -64,12 +67,20 @@ def main():
     
     while True:
         samples.clear()
-        while len(samples) < num_samples:
+        while len(samples) < num_samples and len(samples_mic2) < num_samples and len(samples_mic8) < num_samples:
             value = read_channel(0)
+            value_2 = read_channel(1)
+            value_8 = read_channel(7)
+
             samples.append(value)
+            samples.append(value_2)
+            samples_mic8.append(value_8)
+
             time.sleep(1.0 / sample_rate)  # Ajustar el intervalo de muestreo
 
         save_audio_file(samples)
+        save_audio_file(samples_mic2)
+        save_audio_file(samples_mic8)
 
         # Esperar 10 segundos antes de grabar el siguiente segmento
         time.sleep(10)
