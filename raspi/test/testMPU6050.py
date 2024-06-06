@@ -1,5 +1,5 @@
 import time
-from mpu6050 import mpu6050
+import mpu6050
 
 def testMPU6050():
     # Inicializar el sensor MPU6050

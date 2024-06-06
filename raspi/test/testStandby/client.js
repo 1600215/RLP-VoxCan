@@ -1,4 +1,4 @@
-const io = require('socket.io-client');
+const io = require("socket.io-client");
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -11,12 +11,12 @@ const uploadIntervals = {};
 
 async function uploadFile(userId, token) {
     try {
-        const filePath = path.join(__dirname, 'test.mp3'); // Cambia esto a un archivo de audio válido en tu sistema
+        const filePath = path.join(__dirname, 'aux.mp3'); // Cambia esto a un archivo de audio válido en tu sistema
         const formData = new FormData();
         formData.append('audio', fs.createReadStream(filePath));
         formData.append('token', token);
 
-        const response = await axios.post('http://localhost:3000/upload', formData, {
+        const response = await axios.post('localhost:3000/upload', formData, {
             headers: formData.getHeaders(),
         });
     } catch (error) {
@@ -25,7 +25,7 @@ async function uploadFile(userId, token) {
 }
 
 for (let i = 0; i < clientCount; i++) {
-    const socket = io('http://localhost:3000');
+    const socket = io('https://localhost:3000');
     const userId = i;
     let token;
 

@@ -40,6 +40,9 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
+  filename : (req, file, cb) => {
+    cb(null, file.originalname);
+  }
 });
 
 const upload = multer({ storage: storage });
@@ -76,37 +79,33 @@ io.on("connection", (socket) => {
 
 // Endpoint para manejar la subida de archivos de audio
 app.post("/upload", upload.single("audio"), (req, res) => {
-  const token = req.body.token;
+    const token = req.body.token;
+  
+    if (!tokenFiles[token]) {
+      return res.status(401).send("Invalid name");
+    }
+  
+    if (req.file) {
+      const fileName = `${Date.now()}_${token}.wav`;
+      const inputFilePath = path.join(uploadsDir, req.file.filename);
+      const outputFilePath = path.join(uploadsDir, fileName);
+  
+      // Renombra el archivo a .wav directamente
+      fs.rename(inputFilePath, outputFilePath, (err) => {
+        if (err) {
+          console.error("Error renaming file:", err);
+          return res.status(500).send("Failed to save file");
+        }
 
-  if (!tokenFiles[token]) {
-    return res.status(401).send("Invalid name");
-  }
-
-  if (req.file) {
-    const fileName = `${Date.now() + token}.mp3`;
-    const inputFilePath = path.join(uploadsDir, req.file.filename);
-    const outputFilePath = path.join(uploadsDir, fileName);
-
-    // Convierte el archivo a formato MP3
-    ffmpeg(inputFilePath)
-      .toFormat("mp3")
-      .on("end", () => {
-        fs.unlinkSync(inputFilePath); // Elimina el archivo original .webm
         tokenFiles[token].push(fileName);
-        console.log(
-          `Audio file uploaded and converted with name: ${token} , file: ${fileName}`
-        );
-        res.status(200).send(outputFilePath); // Envía el nombre del archivo como respuesta
-      })
-      .on("error", (err) => {
-        console.error("Error converting file:", err);
-        res.status(500).send("Failed to convert file");
-      })
-      .save(outputFilePath);
-  } else {
-    res.status(400).send("Failed to upload file");
-  }
+        console.log(`Audio file uploaded with name: ${token}, file: ${fileName}`);
+        res.status(200).send("Audio file uploaded successfully!"); // Respuesta de éxito
+      });
+    } else {
+      res.status(400).send("Failed to upload file");
+    }
 });
+
 
 // Endpoint para establecer un comando
 app.post("/set-command", (req, res) => {

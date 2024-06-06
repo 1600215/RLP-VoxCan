@@ -31,26 +31,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Maneja la detención de la grabación y sube el archivo al servidor
   const handleStop = async () => {
-      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-      audioChunks = [];
-      const formData = new FormData();
-      formData.append("audio", audioBlob, "recording.webm");
-      formData.append("token", token);
-
-      try {
-          const response = await fetch("/upload", {
-              method: "POST",
-              body: formData,
-          });
-          if (response.ok) {
-              alert("Audio uploaded and converted to MP3 successfully!");
-          } else {
-              alert("Failed to upload audio");
-          }
-      } catch (error) {
-          console.error("Error uploading audio:", error);
-          alert("Error uploading audio");
+    const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+    audioChunks = [];
+    const formData = new FormData();
+    formData.append("audio", audioBlob, "recording.wav");
+    formData.append("token", token);
+    try {
+      const response = await fetch("/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (response.ok) {
+        alert("Audio uploaded successfully!");
+      } else {
+        alert("Failed to upload audio");
       }
+    } catch (error) {
+      console.error("Error uploading audio:", error);
+      alert("Error uploading audio");
+    }
   };
 
   // Inicia la grabación de audio, cambia el botón a "Stop Recording" y cambia el estilo del botón
