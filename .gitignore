@@ -6,3 +6,5 @@ raspi/modelos/original/
 raspi/modelos/ruidoNorm/
 raspi/modelos/ruido/featureModel/
 raspi/modelos/ruido/featureModel/windowing/
+.vscode/
+.conda/
