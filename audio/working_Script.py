@@ -76,10 +76,6 @@ def main():
 
             time.sleep(1.0 / sample_rate)  # Ajustar el intervalo de muestreo
 
-        # Guardar archivos de cada canal
-        for channel in samples:
-            save_audio_file(samples[channel], channel)
-
         # Esperar 10 segundos antes de grabar el siguiente segmento
         time.sleep(10)
 
