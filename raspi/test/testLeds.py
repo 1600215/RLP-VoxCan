@@ -2,7 +2,7 @@ import time
 import RPi.GPIO as GPIO
 import sys, os
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from constants import LED_PIN_GREEN, LED_PIN_RED, LED_PIN_YELLOW
 def testLeds():
