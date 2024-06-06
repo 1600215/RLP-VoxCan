@@ -2,3 +2,7 @@ webServer/node_modules/
 .DS_Store
 raspi/__pycache__/
 raspi/test/testStandby/node_modules/
+raspi/modelos/original/
+raspi/modelos/ruidoNorm/
+raspi/modelos/ruido/featureModel/
+raspi/modelos/ruido/featureModel/windowing/
