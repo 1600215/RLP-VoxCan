@@ -40,7 +40,5 @@ LED_PIN_RED = 18
 LED_PIN_YELLOW = 24
 
 
-#Sample rate del microfono todavia por descubrir
-SAMPLE_RATE = None
 
 

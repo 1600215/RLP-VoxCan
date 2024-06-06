@@ -117,7 +117,9 @@ void setup() {
   servos[IZQUIERDO_SUP] = ServoControl(IZQUIERDO_SUP);
   servos[DERECHO_INF] = ServoControl(DERECHO_INF);
   servos[IZQUIERDO_INF] = ServoControl(IZQUIERDO_INF);
+  servos[DELANTERO] = ServoControl(DELANTERO);
 
+  delay(10);
 }
 
 //--------------------------------------------------------------------

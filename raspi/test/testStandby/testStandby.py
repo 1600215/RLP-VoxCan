@@ -3,7 +3,6 @@ import sys
 import time
 import aiohttp
 import asyncio
-import random
 import speech_recognition as sr
 from pydub import AudioSegment
 import io
@@ -11,17 +10,11 @@ import io
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from constants import State
+from voiceIdent import predict
 
 AUDIO_FOLDER = '../../../webServer/uploads'  # Cambia esto por la ruta de tu carpeta de destino
-SERVER_URL = 'http://localhost:3000'
+SERVER_URL = 'https://localhost:3000'
 
-async def predict(audio):
-    await asyncio.sleep(4)
-    r = random.random()
-    if r < 0.2:
-        return 4
-    else:
-        return random.choice([0, 1, 2, 3])
 
 async def set_command(file_path, person, text):
     print("Enviando comando...", file_path, person, text)
@@ -42,10 +35,11 @@ async def finish_command():
             else:
                 print("Error al finalizar el comando:", await response.text())
 
+
 async def recognize_audio_from_file(file_path):
     recognizer = sr.Recognizer()
 
-    person = await predict(audio=file_path)
+    person = predict(audio=file_path)
     if person == 4:
         return None
     
@@ -63,11 +57,11 @@ async def recognize_audio_from_file(file_path):
                 print(text)
                 
                 if "siéntate" in text:
-                    await set_command(file_path, await predict(audio=file_path), text)
+                    await set_command(file_path, person, text)
                     return State.SIT
                 
                 elif "ven aquí" in text:
-                    await set_command(file_path, await predict(audio=file_path), text)
+                    await set_command(file_path, person, text)
                     return State.COME
                 
                 else: return None
