@@ -8,3 +8,4 @@ raspi/modelos/ruido/featureModel/
 raspi/modelos/ruido/featureModel/windowing/
 .vscode/
 .conda/
+.gitignore
