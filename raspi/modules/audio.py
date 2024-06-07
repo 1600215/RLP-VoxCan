@@ -39,8 +39,8 @@ async def recognize_audio_from_file(file_path):
     audio = AudioSegment.from_file(file_path)
     audio.export(file_path, format="wav")
     
-    person = predict(audio=file_path)
-    print("Persona identificada:", person)
+    person, t = predict(audio=file_path)
+    print("Persona identificada:", person, "en tiempo:", t)
     
     if person == 4:
         return None
