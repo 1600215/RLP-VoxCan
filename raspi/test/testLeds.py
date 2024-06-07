@@ -6,7 +6,19 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from constants import LED_PIN_GREEN, LED_PIN_RED, LED_PIN_YELLOW
 def testLeds():
+    """
+    Test the LEDs by cycling through different colors.
 
+    This function configures the GPIO pins and cycles through three different colors (red, green, and yellow)
+    by turning on one LED at a time and turning off the others. Each color is displayed for 1 second.
+
+    Raises:
+        KeyboardInterrupt: If the user interrupts the program by pressing Ctrl+C.
+        Exception: If any other exception occurs.
+
+    Returns:
+        None
+    """
     # Configurar los GPIO
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(LED_PIN_RED, GPIO.OUT)

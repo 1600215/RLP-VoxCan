@@ -14,6 +14,12 @@ AUDIO_FOLDER = 'uploads'  # Cambia esto por la ruta de tu carpeta de destino
 
 
 async def main():
+    """
+    Main function that controls the state transitions and commands.
+
+    Returns:
+        None
+    """
     current_state = State.STANDBY
     while True:
         if current_state == State.STANDBY:
@@ -41,6 +47,18 @@ async def main():
             break
 
 async def cleanup_files():
+    """
+    Remove all files in the AUDIO_FOLDER directory.
+
+    This function iterates over all files in the AUDIO_FOLDER directory and removes them one by one.
+    If a file cannot be removed, an error message is printed.
+
+    Parameters:
+        None
+
+    Returns:
+        None
+    """
     archivos = os.listdir(AUDIO_FOLDER)
     for archivo in archivos:
         ruta_archivo = os.path.join(AUDIO_FOLDER, archivo)

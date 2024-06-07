@@ -2,6 +2,16 @@ import time
 import mpu6050
 
 def testMPU6050():
+    """
+    Test the MPU6050 sensor by reading accelerometer and gyroscope data.
+
+    Returns:
+        None
+
+    Raises:
+        KeyboardInterrupt: If the program is interrupted by the user (Ctrl+C).
+        Exception: If any other exception occurs during execution.
+    """
     # Inicializar el sensor MPU6050
     sensor = mpu6050(0x68)
 

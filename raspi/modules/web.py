@@ -12,6 +12,17 @@ context.check_hostname = False
 context.verify_mode = ssl.CERT_NONE
 
 async def set_command(file_path, person, text):
+    """
+    Sends a command to the server.
+
+    Parameters:
+    - file_path (str): The path of the file.
+    - person (str): The person associated with the command.
+    - text (str): The text of the command.
+
+    Returns:
+    - bool: True if the command was sent successfully, False otherwise.
+    """
     data = {'filename': os.path.basename(file_path), 'person': person, 'text': text}
     async with aiohttp.ClientSession() as session:
         async with session.post(f'{SERVER}/set-command', data=data, ssl=context) as response:
@@ -23,6 +34,12 @@ async def set_command(file_path, person, text):
                 return False
 
 async def finish_command():
+    """
+    Finish the command by sending a POST request to the server.
+
+    Returns:
+        bool: True if the command was finished successfully, False otherwise.
+    """
     async with aiohttp.ClientSession() as session:
         print("Finalizando comando...")
         async with session.post(f'{SERVER}/finish-command', ssl=context) as response:

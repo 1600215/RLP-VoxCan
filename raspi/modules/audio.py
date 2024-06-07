@@ -14,28 +14,51 @@ from voiceIdent import predict
 
 
 async def recognize_audio(file_path):
+    """
+    Recognizes audio from a WAV file using the Google Speech Recognition API.
+
+    Parameters:
+    file_path (str): The path to the WAV file.
+
+    Returns:
+    str: The recognized text from the audio file.
+
+    Raises:
+    UnknownValueError: If Google Speech Recognition cannot understand the audio.
+    RequestError: If there is an error requesting results from Google Speech Recognition.
+    Exception: If there is an error processing the audio file.
+    """
     recognizer = sr.Recognizer()
     
     try:
-        # Usar speech_recognition para reconocer el audio directamente desde el archivo WAV
+        # Use speech_recognition to recognize audio directly from the WAV file
         with sr.AudioFile(file_path) as source:
             audio_data = recognizer.record(source)
             try:
                 text = recognizer.recognize_google(audio_data, language='es-ES')
                 return text
             except sr.UnknownValueError:
-                print("Google Speech Recognition no pudo entender el audio")
+                print("Google Speech Recognition could not understand the audio")
                 return None
             except sr.RequestError as e:
-                print(f"No se pudo solicitar resultados de Google Speech Recognition; {e}")
+                print(f"Could not request results from Google Speech Recognition; {e}")
                 return None
     except Exception as e:
-        print(f"Error al procesar el archivo de audio: {e}")
+        print(f"Error processing the audio file: {e}")
         return None
 
 
 async def recognize_audio_from_file(file_path):
+    """
+    Recognizes audio from a file and performs actions based on the recognized text.
 
+    Parameters:
+    file_path (str): The path to the audio file.
+
+    Returns:
+    str or None: The state of the action performed based on the recognized text. Possible values are 'State.SIT', 'State.COME', or None.
+    """
+    
     audio = AudioSegment.from_file(file_path)
     audio.export(file_path, format="wav")
     
@@ -71,6 +94,19 @@ async def recognize_audio_from_file(file_path):
 
 
 async def process_files(audio_folder=AUDIO_FOLDER):
+    """
+    Process audio files in the specified folder.
+
+    Parameters:
+    - audio_folder (str): Path to the folder containing audio files. Default is `AUDIO_FOLDER`.
+
+    Returns:
+    - res: The result of the audio processing.
+
+    Raises:
+    - Exception: If there is an error while predicting the voice command or deleting the file.
+    """
+    
     archivos = os.listdir(audio_folder)
     res = None
     for archivo in archivos:
@@ -96,6 +132,19 @@ async def process_files(audio_folder=AUDIO_FOLDER):
 
 
 async def cleanup_files():
+    """
+    Clean up audio files in the specified folder.
+
+    This function removes all audio files with the '.wav' extension from the specified folder.
+
+    Returns:
+        None
+
+    Raises:
+        OSError: If there is an error while removing the file.
+
+    """
+    
     archivos = os.listdir(AUDIO_FOLDER)
     for archivo in archivos:
         if archivo.lower().endswith('.wav'):

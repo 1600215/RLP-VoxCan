@@ -10,11 +10,19 @@ AUDIO_FOLDER = 'audioTest'
 
 
 async def testRecognizeAudio():
+    """
+    Test the audio recognition functionality.
     
+    This function reads all the MP3 files in the specified audio folder, converts them to WAV format,
+    and then performs audio recognition on each file using the `recognize_audio` function. The recognized
+    text is printed to the console.
+    
+    Returns:
+        None
+    """
     archivos = os.listdir(AUDIO_FOLDER)
     for archivo in archivos:
         if archivo.lower().endswith('.mp3'):
-            
             print(f"Nuevo archivo MP3 detectado: {archivo}")
             ruta_archivo = os.path.join(AUDIO_FOLDER, archivo)
             try:
@@ -23,7 +31,6 @@ async def testRecognizeAudio():
                 
                 res = await recognize_audio(ruta_archivo)
                 print("Texto reconocido:", res)
-                
                 
             except Exception as e:
                 print("Error al predecir el comando de voz:", e)
