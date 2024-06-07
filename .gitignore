@@ -9,3 +9,5 @@ raspi/modelos/ruido/featureModel/windowing/
 .vscode/
 .conda/
 .gitignore
+raspi/test/testStandby/node_modules/
+webServer/.DS_Store
