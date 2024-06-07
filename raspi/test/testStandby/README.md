@@ -16,7 +16,7 @@ Test en tiempo real, a partir de server.js, generar archivos que se analizarán 
 
 ### Tests unitarios
 
-1. `python test/testRecognizeAudio` - Analiza toda la carpeta uploads/ y devuevle el texto de cada audio.
-2. `python test/testPredictAudio` - Analiza toda la carpeta uploads/ y devuelve el identificador de cada clase persona que es.
+1. `python test/testRecognizeAudio.py` - Analiza toda la carpeta uploads/ y devuevle el texto de cada audio.
+2. `python test/testPredict.py` - Analiza toda la carpeta uploads/ y devuelve el identificador de cada clase persona que es.
 
 
