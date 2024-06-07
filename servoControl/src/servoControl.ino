@@ -36,7 +36,7 @@ Servo servos[NUM_SERVOS];
 class ServoControl {
   private:
     uint8_t servoNum;
-    int angulo;
+    uint8_t angulo;
     Servo* servo;
   
   public:
@@ -47,14 +47,19 @@ class ServoControl {
       this->servo = srv;
       this->angulo = -1;
     }
-    
-    void setPosition(int ang) {
+    ServoControl(uint8_t num, Servo* srv,uint8_t angulo) {
+      this->servoNum = num;
+      this->servo = srv;
+      this->angulo = angulo;
+    }
+
+    void setPosition(uint8_t ang) {
       if (this->angulo == ang) return;
       servo->write(ang);
       this->angulo = ang;
     }
 
-    int getPosition() {
+    uint8_t getPosition() {
       return this->angulo;
     }
 };
@@ -71,7 +76,7 @@ void setServosPosition(const JsonObject& parametros) {
   for (JsonPair kv : parametros) {
     const char* nombreServo = kv.key().c_str();
     int nServo = atoi(nombreServo);
-    int angulo = kv.value().as<int>();
+    uint8_t angulo = kv.value().as<uint8_t>();
     servoControllers[nServo].setPosition(angulo);
   }
 }
