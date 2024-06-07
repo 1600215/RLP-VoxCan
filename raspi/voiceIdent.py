@@ -6,6 +6,9 @@ import argparse
 import time
 
 
+from modelos.absolutePath import get_absolute_path
+
+
 def removeSilence(audio, silence_threshold = 0.05):
     '''The `removeSilence` function removes silent segments from an audio signal based on a specified
     silence threshold.
@@ -267,7 +270,7 @@ def extract_features(y, sr):
     return features
 
 
-def predict(algorithm='windowing', dataType='ruido', model='svm', filter=False, audio='aux.mp3'):
+def predict(algorithm='windowing', dataType='ruido', model='rf', filter=False, audio='aux.mp3'):
     """
     Predicts the output based on the given parameters.
 
@@ -289,14 +292,20 @@ def predict(algorithm='windowing', dataType='ruido', model='svm', filter=False, 
     if not os.path.exists(audio):
         return -1
     
+    
+    
+    
     if algorithm == 'windowing':
         if model != 'rf':
             return -1
         
         t0 = time.time()
         
-        m = joblib.load(f'./modelos/{dataType}/{algorithm}/modelos/{model}_{algorithm}_filter_{str(filter)}_comprimido.joblib')
-        scaler = joblib.load(f'./modelos/{dataType}/{algorithm}/scalers/scaler_{algorithm}_filter_{str(filter)}.pkl')
+        absolutePath = get_absolute_path()
+        
+        
+        m = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/modelos/{model}_{algorithm}_filter_{str(filter)}_comprimido.joblib')
+        scaler = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/scalers/scaler_{algorithm}_filter_{str(filter)}.pkl')
         
         y, sr = librosa.load(audio)
         
@@ -326,11 +335,11 @@ def predict(algorithm='windowing', dataType='ruido', model='svm', filter=False, 
         if model != 'cnn':
             return -1
         
-        model = joblib.load(f'./modelos/{dataType}/{algorithm}/modelos/cnn_{algorithm}_filter_{str(filter)}.pkl')
+        model = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/modelos/cnn_{algorithm}_filter_{str(filter)}.pkl')
         y, sr = librosa.load(audio)
         
         if dataType == 'ruidoNorm':
-            average_rms = joblib.load(f'./modelos/{dataType}/average_rms.pkl')
+            average_rms = joblib.load(f'{absolutePath}/{dataType}/average_rms.pkl')
             y = normalize_audio(y, average_rms)
             y = apply_compression(y)
         
@@ -353,12 +362,12 @@ def predict(algorithm='windowing', dataType='ruido', model='svm', filter=False, 
         if model not in ['svc', 'lr', 'rf']:
             return -1
         
-        model = joblib.load(f'./modelos/{dataType}/{algorithm}/modelos/{model}_{algorithm}_filter_{str(filter)}.pkl')
-        scaler = joblib.load(f'./modelos/{dataType}/{algorithm}/scalers/scaler_{algorithm}_filter_{str(filter)}.pkl')
+        model = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/modelos/{model}_{algorithm}_filter_{str(filter)}.pkl')
+        scaler = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/scalers/scaler_{algorithm}_filter_{str(filter)}.pkl')
         y, sr = librosa.load(audio)
         
         if dataType == 'ruidoNorm':
-            average_rms = joblib.load(f'./modelos/{dataType}/average_rms.pkl')
+            average_rms = joblib.load(f'{absolutePath}/{dataType}/average_rms.pkl')
             y = normalize_audio(y, average_rms)
             y = apply_compression(y)
         
