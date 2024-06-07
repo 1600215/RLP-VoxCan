@@ -50,7 +50,9 @@ webServer/
 
 3. Genera los certificados SSL y colócalos en el directorio `certs`.
 
-    `openssl`
+    1. `openssl genrsa -out key.pem 2048`
+    2. `openssl req -new -key key.pem -out csr.pem`
+    3. `openssl x509 -req -days 365 -in csr.pem -signkey key.pem -out cert.pem`
 
 4. Ejecuta el servidor:
 
