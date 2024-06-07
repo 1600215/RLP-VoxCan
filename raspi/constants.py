@@ -30,7 +30,7 @@ class Axis:
 #Definición de constantes
 
 AUDIO_FOLDER = "../webServer/uploads"
-SERVER = "http://localhost:3000"
+SERVER = "https://localhost:3000"
 
 
 MPU6050_ADDR = 0x68
