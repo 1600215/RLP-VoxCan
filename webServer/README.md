@@ -21,19 +21,21 @@ El proyecto consta de tres componentes principales:
 
 ## Estructura del Proyecto
 
-└───webServer/
-    ├───certs/
-    │   ├───cert.pem
-    │   ├───csr.pem
-    │   └───key.pem
-    ├───public/
-    │   ├───index.html
-    │   ├───script.js
-    │   └───styles.css
-    ├───uploads/
-    ├───README.md
-    ├───package.json
-    └───server.js
+```plaintext
+webServer/
+├── certs/
+│   ├── cert.pem
+│   ├── csr.pem
+│   └── key.pem
+├── public/
+│   ├── index.html
+│   ├── script.js
+│   └── styles.css
+├── uploads/
+├── README.md
+├── package.json
+└── server.js
+```
 
 ## Requisitos 
 
