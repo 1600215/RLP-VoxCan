@@ -6,7 +6,6 @@ Caso de haber comando cambia de estado, sino sigue analizando archivos
 ### Instalación
 
 `npm install` o `pnpm install` instalará todos los paquetes necesarios para el servidor y el cliente.
-`pip install -r requeriments.txt` instalará todas las librerias necesarias para el bucle funcional del programa
 
 ### Test general
 
