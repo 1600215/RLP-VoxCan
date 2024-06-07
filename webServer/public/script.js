@@ -33,9 +33,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const handleStop = async () => {
     const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
     audioChunks = [];
+
+
+    const fileName = `${Date.now()}_${token}.wav`;
     const formData = new FormData();
-    formData.append("audio", audioBlob, "recording.wav");
+
+    formData.append("audio", audioBlob, fileName);
     formData.append("token", token);
+
     try {
       const response = await fetch("/upload", {
         method: "POST",
@@ -69,6 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
   };
 
+
   // Detiene la grabación de audio, cambia el botón a "Start Recording" y restaura el estilo del botón
   const stopRecording = () => {
       mediaRecorder.stop();
@@ -91,8 +97,9 @@ document.addEventListener("DOMContentLoaded", () => {
     command = userToken;
     console.log("CommandAccepted", userToken, token);
     textSection.textContent = text;
+
     if (token === userToken) {
-        alert("Robot is now being used by you");
+        alert("Robot is now being used by you " + person);
         textSection.style.color = "green";
     } else {
         alert("Robot is being used by user " + person);

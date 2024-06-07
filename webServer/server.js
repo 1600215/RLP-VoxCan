@@ -4,10 +4,7 @@ const { Server } = require("socket.io");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const ffmpeg = require("fluent-ffmpeg");
-const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 
-ffmpeg.setFfmpegPath(ffmpegPath);
 
 const options = {
   key: fs.readFileSync("certs/key.pem"),
@@ -79,32 +76,24 @@ io.on("connection", (socket) => {
 
 // Endpoint para manejar la subida de archivos de audio
 app.post("/upload", upload.single("audio"), (req, res) => {
-    const token = req.body.token;
-  
-    if (!tokenFiles[token]) {
-      return res.status(401).send("Invalid name");
-    }
-  
-    if (req.file) {
-      const fileName = `${Date.now()}_${token}.wav`;
-      const inputFilePath = path.join(uploadsDir, req.file.filename);
-      const outputFilePath = path.join(uploadsDir, fileName);
-  
-      // Renombra el archivo a .wav directamente
-      fs.rename(inputFilePath, outputFilePath, (err) => {
-        if (err) {
-          console.error("Error renaming file:", err);
-          return res.status(500).send("Failed to save file");
-        }
+  const token = req.body.token;
 
-        tokenFiles[token].push(fileName);
-        console.log(`Audio file uploaded with name: ${token}, file: ${fileName}`);
-        res.status(200).send("Audio file uploaded successfully!"); // Respuesta de éxito
-      });
-    } else {
-      res.status(400).send("Failed to upload file");
-    }
+  if (!tokenFiles[token]) {
+    return res.status(401).send("Invalid name");
+  }
+
+  if (req.file) {
+
+      const fileName = req.file.filename
+      tokenFiles[token].push(fileName);
+      console.log(`Audio file uploaded with name: ${token}, file: ${fileName}`);
+      res.status(200).send("Audio file uploaded successfully!"); // Respuesta de éxito
+    
+  } else {
+    res.status(400).send("Failed to upload file");
+  }
 });
+
 
 
 // Endpoint para establecer un comando
