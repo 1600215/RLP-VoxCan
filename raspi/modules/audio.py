@@ -145,10 +145,10 @@ async def cleanup_files(audio_folder=AUDIO_FOLDER):
 
     """
     
-    archivos = os.listdir(AUDIO_FOLDER)
+    archivos = os.listdir(audio_folder)
     for archivo in archivos:
         if archivo.lower().endswith('.wav'):
-            ruta_archivo = os.path.join(AUDIO_FOLDER, archivo)
+            ruta_archivo = os.path.join(audio_folder, archivo)
             try:
                 os.remove(ruta_archivo)
                 print(f"Archivo {archivo} eliminado correctamente.")
