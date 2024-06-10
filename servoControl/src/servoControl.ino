@@ -56,6 +56,11 @@ class ServoControl {
     void setPosition(uint8_t ang) {
       if (this->angulo == ang) return;
       servo->write(ang);
+      // Espera a que el servo alcance la posición deseada
+      while (servo->attached()) {
+        delay(10); // Espera 10 milisegundos
+      }
+  
       this->angulo = ang;
     }
 
