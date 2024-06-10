@@ -131,7 +131,7 @@ async def process_files(audio_folder=AUDIO_FOLDER):
 
 
 
-async def cleanup_files():
+async def cleanup_files(audio_folder=AUDIO_FOLDER):
     """
     Clean up audio files in the specified folder.
 
