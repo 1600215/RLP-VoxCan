@@ -126,7 +126,7 @@ async def main():
                 try:
                     GPIO.output(LED_PIN_YELLOW, GPIO.HIGH)
                     
-                    if setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : 135, str(Axis.DERECHO_INF) : 45, str(Axis.IZQUIERDO_SUP) : 100, str(Axis.IZQUIERDO_INF) : 100}):
+                    if setPos(ser,mpu,  {str(Axis.DERECHO_SUP) : 150, str(Axis.DERECHO_INF) : 30, str(Axis.IZQUIERDO_SUP) : 30, str(Axis.IZQUIERDO_INF) : 135}):
                         print("Posición inicial establecida")
                     
                     else: 
