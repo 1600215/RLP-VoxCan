@@ -23,8 +23,7 @@ def calibrate_servos(ser, mpu):
     initialPos = getPos(ser)  
     
     if initialPos is None:
-        print("Error al obtener la posición inicial de los servos")
-        return None
+        raise Exception("Error al obtener la posición inicial de los servos")
     
     axisDS = np.arange(initialPos[str(Axis.DERECHO_SUP)] - 10, initialPos[str(Axis.DERECHO_SUP)] + 10, 1) 
     axisDI= np.arange(initialPos[str(Axis.DERECHO_INF)] - 10, initialPos[str(Axis.DERECHO_INF)] + 10, 1)   
@@ -40,15 +39,13 @@ def calibrate_servos(ser, mpu):
                             incl_x, incl_y = calcular_desbalanceo(mpu)
                         
                         if incl_x is None or incl_y is None:
-                            print("Error al enviar los parámetros de los servos")
-                            sys.exit(1)
+                            raise Exception("Error al calcular el desbalanceo")
                                     
                         if abs(incl_x) + abs(incl_y) < min:
                             min = abs(incl_x) + abs(incl_y)
-                            config = {str(Axis.DERECHO_SUP) : angulo_eje_1, str(Axis.DERECHO_INF) : angulo_eje_2, str(Axis.IZQUIERDO_SUP) : angulo_eje_3, str(Axis.IZQUIERDO_INF) : angulo_eje_4}
+                            config = {Axis.DERECHO_SUP : angulo_eje_1, Axis.DERECHO_INF : angulo_eje_2, Axis.IZQUIERDO_SUP : angulo_eje_3, Axis.IZQUIERDO_INF : angulo_eje_4}
                                     
                     except Exception as e:
-                        print("Error al enviar los parámetros de los servos:", e)
-                        sys.exit(1)
-    return None
+                        raise Exception("Error al enviar los parámetros de calibración", e)
+    return config
 
