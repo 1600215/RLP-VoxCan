@@ -17,7 +17,6 @@ def testPositions(mode="pc"):
     Returns:
     - bool: True if the test is successful, False otherwise.
     """
-
     print('Running. Press CTRL-C to exit.')
 
     # Test connecting via serial to the PC
@@ -41,7 +40,10 @@ def testPositions(mode="pc"):
                 i = 0
                 while i < 180:
                     print("Connection time: ", time.time() - t0)
-                    _ = setPos(ser, {str(Axis.DERECHO_SUP): i})
+                    set = setPos(ser, {str(Axis.DERECHO_SUP): i})
+                    if not set:
+                        print("Error setting position")
+                        return False
                     time.sleep(1)
                     print("Sending {'command': Command.GET_POS} to Arduino")
                     print("Received: ", getPos(ser))
