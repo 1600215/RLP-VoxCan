@@ -26,6 +26,7 @@ class Axis:
     IZQUIERDO_INF = 3
     DELANTERO = 4        
 
+
 #-----------------------------------------------------------------------
 #Definición de constantes
 
@@ -39,6 +40,20 @@ LED_PIN_GREEN = 17
 LED_PIN_RED = 18
 LED_PIN_YELLOW = 24
 
+#Pasos del movimiento de andar 
+# Ángulos de las articulaciones (en grados) para los cinco pasos
+walk = [
+    (175, 100),  # Paso 1
+    (155, 100),   # Paso 2
+    (155, 145),   # Paso 3
+    (175, 145),  # Paso 4
+    (175, 100)   # Paso 5 (volver al paso inicial)
+]
 
 
+l1 = 13.5
+l2 = 17
 
+
+DERECHA = 0
+IZQUIERDA = 1
