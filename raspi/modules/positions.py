@@ -39,23 +39,17 @@ def getPos(ser):
 #-----------------------------------------------------------------------
 #Función para enviar los parámetros de los servos
 
-def setPos(ser,params):
-    '''The function `setPos` sends a command to a serial device, waits for a response, and returns
-    calculated values based on the response.
-    
-    Parameters
-    ----------
-    params
-        It seems like the code snippet you provided is a function named `setPos` that sends a command to a
-    serial device, waits for a response, and then processes the response based on the status received.
-    
-    Returns
-    -------
-        The function `setPos` is returning a tuple of values `incl_x, incl_y` if the received status is
-    `RECIVED`. Otherwise, it returns `None, None`.
-    
-    '''
-    
+def setPos(ser, params):
+    """
+    Sets the position of the servo motor.
+
+    Args:
+        ser (Serial): The serial connection to the servo motor.
+        params (dict): The parameters for setting the position.
+
+    Returns:
+        bool: True if the position was set successfully, False otherwise.
+    """
     command = {'command': Command.SET_POS, 'parametros': params}
     
     ser.write((json.dumps(command)+ '\n').encode('utf-8'))
