@@ -5,7 +5,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-
+// Opciones para la configuración HTTPS
 const options = {
   key: fs.readFileSync("server/certs/key.pem"),
   cert: fs.readFileSync("server/certs/cert.pem"),
@@ -25,6 +25,7 @@ const port = 3000;
 let token = null;
 let person = null;
 let text = null;
+let command = null;
 
 // Crea la carpeta de cargas si no existe
 const uploadsDir = path.join(__dirname, "../uploads");
@@ -32,12 +33,12 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
 }
 
-// Configuración para multer para almacenar archivos de audio
+// Configuración de multer para almacenar archivos de audio
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
-  filename : (req, file, cb) => {
+  filename: (req, file, cb) => {
     cb(null, file.originalname);
   }
 });
@@ -51,15 +52,10 @@ let tokenFiles = {};
 io.on("connection", (socket) => {
   console.log("A user connected");
 
-  // Si hay un token activo, notifica al cliente
-  if (token) {
-    socket.emit("OnCommand", { userToken: token, person, text });
-  }
-
   // Maneja la recepción de un nuevo token
-  socket.on("submit-token", (token) => {
-    tokenFiles[token] = [];
-    socket.emit("token-accepted");
+  socket.on("submit-token", (userToken) => {
+    tokenFiles[userToken] = [];
+    socket.emit("token-accepted", { userToken: token, person, text, command });
   });
 
   // Verifica la existencia de un token
@@ -68,6 +64,9 @@ io.on("connection", (socket) => {
     socket.emit("token-exists", exists);
   });
 
+  socket.on("check-command", () => {
+    socket.emit("isCommand", { userToken: token, person, text, command });
+  });
   // Maneja la desconexión de un usuario
   socket.on("disconnect", () => {
     console.log("User disconnected");
@@ -76,24 +75,21 @@ io.on("connection", (socket) => {
 
 // Endpoint para manejar la subida de archivos de audio
 app.post("/upload", upload.single("audio"), (req, res) => {
-    const token = req.body.token;
-  
-    if (!tokenFiles[token]) {
-      return res.status(401).send("Invalid name");
-    }
-  
-    if (req.file) {
+  const token = req.body.token;
 
-        const fileName = req.file.filename
-        tokenFiles[token].push(fileName);
-        console.log(`Audio file uploaded with name: ${token}, file: ${fileName}`);
-        res.status(200).send("Audio file uploaded successfully!"); // Respuesta de éxito
-      
-    } else {
-      res.status(400).send("Failed to upload file");
-    }
+  if (!tokenFiles[token]) {
+    return res.status(401).send("Invalid token");
+  }
+
+  if (req.file) {
+    const fileName = req.file.filename;
+    tokenFiles[token].push(fileName);
+    console.log(`Audio file uploaded with token: ${token}, file: ${fileName}`);
+    res.status(200).send("Audio file uploaded successfully!");
+  } else {
+    res.status(400).send("Failed to upload file");
+  }
 });
-
 
 // Endpoint para establecer un comando
 app.post("/set-command", (req, res) => {
@@ -112,17 +108,12 @@ app.post("/set-command", (req, res) => {
     token = usuarioEncontrado;
     person = req.body.person;
     text = req.body.text;
+    command = req.body.command;
 
-    io.emit("CommandAccepted", { userToken: usuarioEncontrado, person, text });
-    res
-      .status(200)
-      .send(
-        `El archivo '${filename}' pertenece al usuario '${usuarioEncontrado}'.`
-      );
+    io.emit("CommandAccepted", { userToken: usuarioEncontrado, person, text, command });
+    res.status(200).send(`El archivo '${filename}' pertenece al usuario '${usuarioEncontrado}'.`);
   } else {
-    res
-      .status(200)
-      .send(`No se encontró ningún usuario asociado al archivo '${filename}'.`);
+    res.status(200).send(`No se encontró ningún usuario asociado al archivo '${filename}'.`);
   }
 });
 
@@ -131,7 +122,7 @@ app.post("/finish-command", (req, res) => {
   token = null;
   person = null;
   text = null;
-
+  command = null;
   io.emit("commandFinished");
 
   res.status(200).send("Comando finalizado.");
@@ -140,13 +131,12 @@ app.post("/finish-command", (req, res) => {
 // Sirve archivos estáticos
 app.use(express.static(path.join(__dirname, "../public")));
 
-// Sirve el archivo HTML
+// Sirve el archivo HTML principal
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public", "index.html"));
 });
 
-
 // Inicia el servidor
 server.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+  console.log(`Server is running at https://localhost:${port}`);
 });
