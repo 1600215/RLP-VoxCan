@@ -1,10 +1,12 @@
 import os, sys
 import numpy as np
+import asyncio
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from constants import Axis, l1, l2, DERECHA, IZQUIERDA
-
+from constants import Axis, L1, L2, DERECHA, IZQUIERDA, WALK, UMBRAL_DESBALANCE
+from modules.positions import setPos
+from modules.accel import calcular_desbalanceo
 
 # Función de calibración
 def calibrate_servo(servo_name, joint_angle_ref, servo_angle_ref, calibrations):
@@ -104,11 +106,11 @@ def cinematica_directa(theta1, theta2):
     tuple: A tuple containing two tuples. The first tuple represents the coordinates of the knee joint (x_rodilla, y_rodilla),
         and the second tuple represents the coordinates of the foot joint (x_pie, y_pie).
     """
-    x_rodilla = l1 * np.cos(np.radians(theta1))
-    y_rodilla = l1 * np.sin(np.radians(theta1))
+    x_rodilla = L1 * np.cos(np.radians(theta1))
+    y_rodilla = L1 * np.sin(np.radians(theta1))
     
-    x_pie = x_rodilla + l2 * np.cos(np.radians(theta1 + theta2))
-    y_pie = y_rodilla + l2 * np.sin(np.radians(theta1 + theta2))
+    x_pie = x_rodilla + L2 * np.cos(np.radians(theta1 + theta2))
+    y_pie = y_rodilla + L2 * np.sin(np.radians(theta1 + theta2))
     
     return (x_rodilla, y_rodilla), (x_pie, y_pie)
 
@@ -127,10 +129,10 @@ def cinematica_inversa(x_pie, y_pie, y_hip_new):
     """
     d = np.sqrt(x_pie**2 + (y_pie - y_hip_new)**2)
     alpha = np.arctan2(y_pie - y_hip_new, x_pie)
-    beta = np.arccos((l1**2 + d**2 - l2**2) / (2 * l1 * d))
+    beta = np.arccos((L1**2 + d**2 - L2**2) / (2 * L1 * d))
     
     theta1 = np.degrees(alpha - beta)
-    theta2 = np.degrees(np.arccos((l1**2 + l2**2 - d**2) / (2 * l1 * l2))) - 180
+    theta2 = np.degrees(np.arccos((L1**2 + L2**2 - d**2) / (2 * L1 * L2))) - 180
     
     return theta1, theta2
 
@@ -169,3 +171,51 @@ def bajar_cadera(type, servo1, servo2, desplazamiento_vertical, calibrations):
     
     (rodilla_x, rodilla_y), _ = cinematica_directa(theta1_new, theta2_new)
     return (rodilla_x, rodilla_y), (theta1_new, theta2_new)
+
+
+async def move_robot(calibrations):
+    """
+    Move the robot in a loop.
+
+    Parameters:
+        lock (asyncio.Lock): A lock to ensure exclusive access to the robot's movement.
+        leg (str): The initial leg to move.
+        duration (int): Duration in seconds for how long the robot should move.
+
+    Returns:
+        None
+    """
+    leg = DERECHA
+    while True:
+        for paso in WALK:
+            if leg == IZQUIERDA:
+                servo1 = map_angle_to_servo(Axis.IZQUIERDA_SUPERIOR, paso[0], calibrations)
+                if servo1 is None: raise Exception("Position incorrect")
+                servo2 = map_angle_to_servo(Axis.IZQUIERDA_INFERIOR, paso[1], calibrations)
+                if servo2 is None: raise Exception("Position incorrect")
+                set = await setPos({str(Axis.IZQUIERDA_SUPERIOR): servo1, str(Axis.IZQUIERDA_INFERIOR): servo2})
+                if not set: raise Exception("Error while setting position")
+                incl_x , incl_y = calcular_desbalanceo()
+                if incl_x is None or incl_y is None: raise Exception("Error while calculating imbalance")
+                if incl_y > UMBRAL_DESBALANCE:
+                    _ , (theta1, theta2) = bajar_cadera('DERECHA', servo1, servo2, -1) 
+                    set = await setPos({str(Axis.DERECHA_SUPERIOR): theta1, str(Axis.DERECHA_INFERIOR): theta2})
+                    if not set: raise Exception("Error while setting position")
+            elif leg == IZQUIERDA:
+                servo1 = map_angle_to_servo(Axis.DERECHA_SUPERIOR, paso[0], calibrations)
+                if servo1 is None: raise Exception("Position incorrect")
+                servo2 = map_angle_to_servo(Axis.DERECHA_INFERIOR, paso[1], calibrations)
+                if servo2 is None: raise Exception("Position incorrect")
+                set = await setPos({str(Axis.DERECHA_SUPERIOR): servo1, str(Axis.DERECHA_INFERIOR): servo2})
+                if not set: raise Exception("Error while setting position") 
+                incl_x , incl_y = calcular_desbalanceo()
+                if incl_x is None or incl_y is None: raise Exception("Error while calculating imbalance")
+                if incl_y > UMBRAL_DESBALANCE:
+                    _ , (theta1, theta2) = bajar_cadera('IZQUIERDA', servo1, servo2, -1) 
+                    set = await setPos({str(Axis.IZQUIERDA_SUPERIOR): theta1, str(Axis.IZQUIERDA_INFERIOR): theta2})
+                    if not set: raise Exception("Error while setting position")
+            else: 
+                raise Exception("Leg not found while walking")
+            if leg == DERECHA: leg = IZQUIERDA
+            elif leg ==IZQUIERDA: leg = DERECHA
+            await asyncio.sleep(1)
