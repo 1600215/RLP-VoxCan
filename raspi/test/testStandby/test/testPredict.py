@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../.
 from voiceIdent import predict
 
 
-AUDIO_FOLDER = 'audioTest'
+AUDIO_FOLDER = os.path.abspath('audioTest')  # Cambia esto por la ruta de tu carpeta de destino
 
 def convertName(name):
     """
@@ -29,6 +29,17 @@ def convertName(name):
     else:
         return 4
         
+def convertNameString(name):
+    if name == 0:
+        return "Gerard"
+    elif name == 1:
+        return "Albert"
+    elif name == 2:
+        return "Raul"  
+    elif name == 3:
+        return "Adria"
+    else:
+        return "Unknown"
 def testPredict():
     """
     Test the predict function on a list of audio files.
@@ -61,10 +72,10 @@ def testPredict():
                 print("Error al predecir persona:", e)
                 break
             if res != convertName(archivo.split('_')[1]):
-                print("Error en la predicción:", archivo.split('_')[1], res)
+                print("Error en la predicción:", archivo.split('_')[1], convertNameString(res))
             else:
                 i = i + 1
-                print("Persona reconocido correctamente:", archivo.split('_')[1], res)
+                print("Persona reconocido correctamente:", archivo.split('_')[1], convertNameString(res))
             print("tiempo de ejecución:", t)
     print("Test passed con ", i, " de ", len(archivos), " archivos")
 

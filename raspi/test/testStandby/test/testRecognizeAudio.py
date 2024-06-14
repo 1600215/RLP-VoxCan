@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../.
 
 from modules.audio import recognize_audio
 
-AUDIO_FOLDER = 'audioTest'
+AUDIO_FOLDER = os.path.abspath('audioTest')  # Cambia esto por la ruta de tu carpeta de destino
 
 
 async def testRecognizeAudio():
