@@ -1,14 +1,15 @@
 #-----------------------------------------------------------------------
 #Estados de nuestra maquina de estados del robot VOXCAN
-
+import sys, os
 class State:
     INITIALIZE = 0
     SET_INIT = 1
     CALIBRATION = 2
     STANDBY = 3
     SIT = 4
-    COME = 5
-    
+    WALK = 5    
+    ROTATE = 7
+    STANDUP = 8
 
 class Command:
     CONNECT = 0
@@ -30,7 +31,7 @@ class Axis:
 #-----------------------------------------------------------------------
 #Definición de constantes
 
-AUDIO_FOLDER = "../webServer/uploads"
+AUDIO_FOLDER = os.path.abspath('../webServer/uploads')
 SERVER = "https://localhost:3000"
 
 
@@ -42,8 +43,7 @@ LED_PIN_YELLOW = 24
 
 #Pasos del movimiento de andar 
 # Ángulos de las articulaciones (en grados) para los cinco pasos
-walk = [
-    (175, 100),  # Paso 1
+WALK = [
     (155, 100),   # Paso 2
     (155, 145),   # Paso 3
     (175, 145),  # Paso 4
@@ -51,8 +51,8 @@ walk = [
 ]
 
 
-l1 = 13.5
-l2 = 17
+L1 = 13.5
+L2 = 17
 
 
 DERECHA = 0
