@@ -14,18 +14,21 @@ rotate_degrees = None  # Variable global para los grados de giro
 
 async def main():
     """
-    Main function that controls the state transitions and commands.
+    Main function that controls the state transitions and audio processing.
+
+    This function continuously checks the current state and performs the corresponding actions based on the state.
+    It calls the `process_files` function to process audio files based on the current state.
+    The function waits for the audio processing task to complete and updates the current state accordingly.
+    If the next state is different from the current state, the loop breaks and transitions to the new state.
+    The function also handles the rotation degrees when the state is `ROTATE`.
 
     Returns:
         None
     """
-
-    global current_state
+    global current_state, rotate_degrees
     while True:
         if current_state == State.STANDBY:
-            
-            #todo NADA 
-            
+            #todo NADA
             while True: 
                 print("Esperando comando desde la Raspberry Pi...")
                 # Llamar a process_files con la variable global current_state
@@ -134,5 +137,4 @@ async def main():
                 await asyncio.sleep(1)
 
 if __name__ == "__main__":
-    lock = asyncio.Lock()  # Crear un lock asyncio
     asyncio.run(main())
