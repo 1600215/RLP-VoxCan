@@ -11,7 +11,7 @@ context = ssl.create_default_context()
 context.check_hostname = False
 context.verify_mode = ssl.CERT_NONE
 
-async def set_command(file_path, person, text):
+async def set_command(file_path, person, text, command):
     """
     Sends a command to the server.
 
@@ -23,7 +23,7 @@ async def set_command(file_path, person, text):
     Returns:
     - bool: True if the command was sent successfully, False otherwise.
     """
-    data = {'filename': os.path.basename(file_path), 'person': person, 'text': text}
+    data = {'filename': os.path.basename(file_path), 'person': person, 'text': text, 'command': command}
     async with aiohttp.ClientSession() as session:
         async with session.post(f'{SERVER}/set-command', data=data, ssl=context) as response:
             if response.status == 200:
