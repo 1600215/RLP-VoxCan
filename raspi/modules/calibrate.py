@@ -3,7 +3,7 @@ import numpy as np
 from constants import Axis
 from modules.positions import getPos, setPos
 from modules.accel import calcular_desbalanceo
-
+import time
 #-----------------------------------------------------------------------
 #Función para calibrar los servos
 
@@ -25,10 +25,10 @@ def calibrate_servos(ser, mpu):
     if initialPos is None:
         raise Exception("Error al obtener la posición inicial de los servos")
     
-    axisDS = np.arange(initialPos[str(Axis.DERECHO_SUP)] - 10, initialPos[str(Axis.DERECHO_SUP)] + 10, 1) 
-    axisDI= np.arange(initialPos[str(Axis.DERECHO_INF)] - 10, initialPos[str(Axis.DERECHO_INF)] + 10, 1)   
-    axisIS = np.arange(initialPos[str(Axis.IZQUIERDO_SUP)] - 10, initialPos[str(Axis.IZQUIERDO_SUP)] + 10, 1)   
-    axisII = np.arange(initialPos[str(Axis.IZQUIERDO_INF)] - 10, initialPos[str(Axis.IZQUIERDO_INF)] + 10, 1)  
+    axisDS = np.arange(initialPos[str(Axis.DERECHO_SUP)] - 3, initialPos[str(Axis.DERECHO_SUP)] + 3, 1) 
+    axisDI= np.arange(initialPos[str(Axis.DERECHO_INF)] - 3, initialPos[str(Axis.DERECHO_INF)] + 3, 1)   
+    axisIS = np.arange(initialPos[str(Axis.IZQUIERDO_SUP)] - 3, initialPos[str(Axis.IZQUIERDO_SUP)] + 3, 1)   
+    axisII = np.arange(initialPos[str(Axis.IZQUIERDO_INF)] - 3, initialPos[str(Axis.IZQUIERDO_INF)] + 3, 1)  
 
     for angulo_eje_1 in axisDS:
         for angulo_eje_2 in axisDI:
@@ -44,7 +44,7 @@ def calibrate_servos(ser, mpu):
                         if abs(incl_x) + abs(incl_y) < min:
                             min = abs(incl_x) + abs(incl_y)
                             config = {Axis.DERECHO_SUP : angulo_eje_1, Axis.DERECHO_INF : angulo_eje_2, Axis.IZQUIERDO_SUP : angulo_eje_3, Axis.IZQUIERDO_INF : angulo_eje_4}
-                                    
+                        time.sleep(0.2)    
                     except Exception as e:
                         raise Exception("Error al enviar los parámetros de calibración", e)
     return config
