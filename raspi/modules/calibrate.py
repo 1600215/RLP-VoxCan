@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 from constants import Axis
-from modules.positions import getPos, setPos
+from raspi.modules.arduino import getPos, setPos
 from modules.accel import calcular_desbalanceo
 import time
 #-----------------------------------------------------------------------
@@ -23,7 +23,7 @@ def calibrate_servos(ser, mpu):
     initialPos = getPos(ser)  
     
     if initialPos is None:
-        raise Exception("Error al obtener la posición inicial de los servos")
+        return None
     
     axisDS = np.arange(initialPos[str(Axis.DERECHO_SUP)] - 3, initialPos[str(Axis.DERECHO_SUP)] + 3, 1) 
     axisDI= np.arange(initialPos[str(Axis.DERECHO_INF)] - 3, initialPos[str(Axis.DERECHO_INF)] + 3, 1)   
@@ -37,10 +37,7 @@ def calibrate_servos(ser, mpu):
                     try:
                         if setPos(ser,  {str(Axis.DERECHO_SUP) : angulo_eje_1, str(Axis.DERECHO_INF) : angulo_eje_2, str(Axis.IZQUIERDO_SUP) : angulo_eje_3, str(Axis.IZQUIERDO_INF) : angulo_eje_4}):
                             incl_x, incl_y = calcular_desbalanceo(mpu)
-                        
-                        if incl_x is None or incl_y is None:
-                            raise Exception("Error al calcular el desbalanceo")
-                                    
+   
                         if abs(incl_x) + abs(incl_y) < min:
                             min = abs(incl_x) + abs(incl_y)
                             config = {Axis.DERECHO_SUP : angulo_eje_1, Axis.DERECHO_INF : angulo_eje_2, Axis.IZQUIERDO_SUP : angulo_eje_3, Axis.IZQUIERDO_INF : angulo_eje_4}
