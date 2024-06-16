@@ -1,0 +1,17 @@
+@startuml
+
+title Comunicación entre Raspberry Pi y Arduino Nano
+
+participant RaspberryPi
+participant ArduinoNano
+
+RaspberryPi -> ArduinoNano: connect(ser)
+ArduinoNano -> RaspberryPi: {'status': OK}
+
+RaspberryPi -> ArduinoNano: getPos(ser)
+ArduinoNano -> RaspberryPi: {'status': OK, 'positions': '{"0": 90, "1": 90, "2": 90, "3": 90, "4": 90}'}
+
+RaspberryPi -> ArduinoNano: setPos(ser, params)
+ArduinoNano -> RaspberryPi: {'status': OK}
+
+@enduml
