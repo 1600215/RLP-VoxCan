@@ -22,10 +22,17 @@ app.use(express.urlencoded({ extended: true }));
 
 const port = 3000;
 
+
+//token del usuario utilizando el robot
 let token = null;
+//persona utilizando el robot
 let person = null;
+//texto del comando
 let text = null;
+//numero de comanda
 let command = null;
+//indica si el comando ha finalizado
+let finished = true;
 
 // Crea la carpeta de cargas si no existe
 const uploadsDir = path.join(__dirname, "../uploads");
@@ -65,7 +72,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("check-command", () => {
-    socket.emit("isCommand", { userToken: token, person, text, command });
+    socket.emit("is-command", { userToken: token, person, text, command, finished });
   });
   // Maneja la desconexión de un usuario
   socket.on("disconnect", () => {
@@ -109,8 +116,8 @@ app.post("/set-command", (req, res) => {
     person = req.body.person;
     text = req.body.text;
     command = req.body.command;
-
-    io.emit("CommandAccepted", { userToken: usuarioEncontrado, person, text, command });
+    if(parseInt(command) !== 5) finished = false;
+    io.emit("command-accepted", { userToken: usuarioEncontrado, person, text, command });
     res.status(200).send(`El archivo '${filename}' pertenece al usuario '${usuarioEncontrado}'.`);
   } else {
     res.status(200).send(`No se encontró ningún usuario asociado al archivo '${filename}'.`);
@@ -118,13 +125,21 @@ app.post("/set-command", (req, res) => {
 });
 
 // Endpoint para finalizar un comando
-app.post("/finish-command", (req, res) => {
+app.post("/go-standby", (req, res) => {
   token = null;
   person = null;
   text = null;
   command = null;
-  io.emit("commandFinished");
+  finished = true;
+  io.emit("go-standby");
 
+  res.status(200).send("Comando finalizado.");
+});
+
+
+app.post('/finish-command', (req,res) =>{
+  finished = true;
+  io.emit("finish-command", {userToken: token});
   res.status(200).send("Comando finalizado.");
 });
 
