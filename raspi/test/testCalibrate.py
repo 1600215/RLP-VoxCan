@@ -2,7 +2,7 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from modules.motion import calibrate_servo
 from modules.calibrate import calibrate_servos
-from modules.positions import setPos, getPos
+from modules.arduino import setPos, getPos
 from constants import  Axis
 
 def calibrate_robot(ser, mpu, calibration):
