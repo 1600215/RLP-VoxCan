@@ -15,8 +15,11 @@ def calcular_desbalanceo(mpu):
     '''
     
     # Leer datos del acelerómetro y el giroscopio
-    acelerometro = mpu.get_accel_data()
-
+    try:
+        acelerometro = mpu.get_accel_data()
+    except Exception as e:
+        raise Exception("Error al obtener los datos del acelerómetro", e)
+    
     # Calcular ángulo de inclinación en cada eje a partir del acelerómetro
     inclinacion_x = math.atan2(acelerometro['y'], acelerometro['z']) * 180 / math.pi
     inclinacion_y = math.atan2(-acelerometro['x'], math.sqrt(acelerometro['y']**2 + acelerometro['z']**2)) * 180 / math.pi
