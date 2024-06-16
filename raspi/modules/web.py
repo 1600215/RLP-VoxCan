@@ -33,6 +33,24 @@ async def set_command(file_path, person, text, command):
                 print("Error al enviar el comando:", await response.text())
                 return False
 
+async def go_standby():
+    """
+    Finish the command by sending a POST request to the server.
+
+    Returns:
+        bool: True if the command was finished successfully, False otherwise.
+    """
+    async with aiohttp.ClientSession() as session:
+        print("Finalizando comando...")
+        async with session.post(f'{SERVER}/go-standby', ssl=context) as response:
+            if response.status == 200:
+                print("Comando finalizado correctamente")
+                return True
+            else:
+                print("Error al finalizar el comando:", await response.text())
+                return False
+
+
 async def finish_command():
     """
     Finish the command by sending a POST request to the server.
