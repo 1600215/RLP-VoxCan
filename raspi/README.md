@@ -1,26 +1,85 @@
-## 1. Encargado de toda la parte computacional del robot, envia via puerto Seial datos a Arduino Nano
+## Estructura del Programa
 
-## 2. Estados del robot: 
+### Módulo de Audio (`modules.audio`)
 
-### 1 - Connect 
+- **Detección de Archivos de Audio**: Detecta nuevos archivos WAV subidos por diferentes clientes.
+- **Procesamiento de Audio**: Convierte el archivo a formato WAV si es necesario, predice la identidad de la persona en el audio, y reconoce el texto usando Google Speech Recognition.
+- **Comandos de Voz**: Extrae y ejecuta comandos de voz reconocidos para cambiar el estado del robot (e.g., "siéntate", "ven aquí", "gira").
+- **Manejo de Estados**: Dependiendo del texto reconocido y del estado actual, transita entre diferentes estados (`STANDBY`, `WALK`, `SIT`, `STANDUP`, `ROTATE`).
+- **Interacción con el Servidor Web**: Notifica al servidor web el inicio y fin de procesamiento de comandos.
 
-Envia comando { 'command' : CONNECT } a Arduino, espera a recibir un json del tipo { 'status' : OK}.
+### Bucle Principal del Robot (`main.py`)
 
-### 2 - Inicialización posición del robot.
+- **Inicialización de Hardware**: Configura GPIO para LEDs, inicializa el puerto serie para comunicación con un Arduino Nano, e inicializa un sensor MPU6050.
+- **Gestión de Estados**: Mantiene un bucle continuo que monitoriza y actualiza el estado del robot basado en los comandos de voz procesados.
+- **Estados del Robot**:
+  - `CONNECT`: Conexión con el Arduino Nano.
+  - `SET_INIT`: Configuración inicial de la posición del robot.
+  - `CALIBRATION`: Calibración de servos del robot.
+  - `STANDBY`: Espera de comandos de voz.
+  - `SIT`, `STANDUP`, `WALK`, `ROTATE`: Ejecuta las acciones correspondientes a los comandos de voz.
 
-Envia comando { 'command' : SET_POS, 'parametros' : { DERECHA_SUP : 45 , DERECHA INF : 0 ...}} a arduino nano,  recibe 
-{ 'status' : OK } o { 'status' : ERROR }.
+## Flujo del Programa
 
-### 3 - Calibración desbalanceo del robot.
+1. **Inicio del Bucle Principal**:
+   - Se inicializa el hardware necesario (LEDs, puerto serie, MPU6050).
+   - Se establece la conexión con el Arduino Nano.
 
-Itera sobre diferentes posiciones de los 4 ejes traseros del robot el que menos inclinación de en los ejes X, Y, será la posición de reposo.
+2. **Calibración y Posición Inicial**:
+   - Se configuran las posiciones iniciales y se calibran los servos del robot.
 
-### 4 - Estado STANDBY
+3. **Espera y Procesamiento de Comandos de Voz**:
+   - El programa entra en estado `STANDBY` y espera comandos de voz.
+   - Cuando se detecta un nuevo archivo de audio, se procesa para extraer el comando de voz.
+   - Dependiendo del comando, se transita a un nuevo estado (`SIT`, `STANDUP`, `WALK`, `ROTATE`).
 
-Espera un comando de audio, via SpeechRecognizer. Los microfonos estarán escuchando y cada x segundos, realizará una comprobación de lo ue se ha dicho, si es una palabra en clave, se pasará el identificador de voz para realizar una clasificación de la voz.
+4. **Ejecución de Acciones Basadas en Estados**:
+   - Cada estado del robot tiene su propio conjunto de acciones que se ejecutan hasta recibir un nuevo comando de voz.
 
-También se deve hacer una triangulación de donde viene la señal.
+## Interacciones Clave
 
-### 5 - Estados que realizan comandos - { SIENTATE, CAMINA}
+- **Usuario**: Sube archivos de audio con comandos de voz.
+- **Módulo de Audio**: Procesa los archivos de audio, reconoce el texto y determina los comandos.
+- **Bucle Principal**: Controla el estado del robot y ejecuta acciones basadas en los comandos de voz.
+- **Servidor Web**: Interactúa con el módulo de audio para indicar el inicio y fin del procesamiento de comandos.
 
-Comandos que realizará el robot
+## Estado del Robot
+
+Los estados del robot controlan las acciones específicas que realiza. Los estados clave incluyen:
+
+- `STANDBY`: El robot está en espera y listo para recibir nuevos comandos.
+- `WALK`: El robot camina hacia una dirección específica.
+- `SIT`: El robot se sienta.
+- `STANDUP`: El robot se levanta de una posición sentada.
+- `ROTATE`: El robot gira a un ángulo específico basado en el comando de voz.
+
+
+## Consideraciones de Error
+
+- **Errores de Procesamiento de Audio**: Se manejan mediante excepciones personalizadas (`AudioProcessingError`, `SpeechRecognitionError`).
+- **Errores de Hardware**: Se manejan excepciones para inicialización y comunicación con el hardware.
+
+## Diagrama de Secuencia
+
+![Diagrama de Secuencia](diagrama_secuencia.png)
+
+Este diagrama de secuencia captura la interacción entre los componentes y refleja cómo se manejan los comandos de voz para controlar el estado del robot.
+
+## Instalación y Ejecución
+
+### Requisitos
+
+- Python 3.8 o superior
+- Dependencias listadas en `requirements.txt`
+
+### Instalación
+
+```bash
+pip install -r requirements.txt
+```
+
+### Ejecución
+
+```bash
+python main.py
+```

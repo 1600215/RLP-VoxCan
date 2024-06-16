@@ -14,7 +14,7 @@ La web, solo permite la comunicación entre clientes via Socket.io y la subida d
 
 ## Descripción General
 
-El proyecto consta de tres componentes principales:
+El proyecto consta de dos componentes principales:
 
 1. **Servidor**: Implementado con Express y Socket.io, gestiona la subida de archivos de audio y la comunicación en tiempo real con el cliente.
 2. **Cliente**: Una interfaz web que permite al usuario grabar y subir archivos de audio al servidor.
