@@ -137,12 +137,17 @@ document.addEventListener("DOMContentLoaded", () => {
   /**
    * Maneja los comandos aceptados.
    */
-  socket.on("CommandAccepted", ({ userToken, person, text, command }) => {
+  socket.on("command-accepted", ({ userToken, person, text, command }) => {
+    //se setea la variable commandToken con el token del usuario que esta utilizando el robot
     commandToken = userToken;
-    console.log("CommandAccepted", userToken, token);
+
     textSection.textContent = text;
     commandSection.textContent = convertCommandString(command);
+
+    //si el comando es mio
     if (token === userToken) {
+      //si el comando es WALK
+      if (parseInt(command) !== 5) recordButton.disabled = true;
       alert("Robot is now being used by " + convertUserString(person));
       textSection.style.color = "green";
     } else {
@@ -152,11 +157,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-
   /**
-   * Indica que el comando ha finalizado.
+   * Indica que vuelve a estado Standby por lo tanto nadie está utilizando robot
    */
-  socket.on("commandFinished", () => {
+  socket.on("go-standby", () => {
     commandToken = null;
     alert("Robot is now available");
     recordButton.disabled = false;
@@ -172,7 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log(userToken, person, text, command);
     commandToken = userToken;    
     if (commandToken){
-      alert("Robot is now being used by " + convertUserString(person));
+      alert("Robot is being used by " + convertUserString(person));
       textSection.textContent = text;
       textSection.style.color = "red";
       commandSection.textContent = convertCommandString(command);
@@ -184,24 +188,47 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /**
-   * Comprueba si hay comanda, y setea todas las secciones
+   * Finaliza el comando actual
    */
-  socket.on("isCommand", ({ userToken, person, text, command }) => {
-    commandToken = userToken;
+  socket.on("finish-command", ({userToken}) => {
+
+    //si el comando es mio
+    if (token === userToken) {
+      recordButton.disabled = false;
+    }
+  })
+  /**
+   * Cada vez que se recarga la pagina, y se ha verificado el token
+   */
+  socket.on("is-command", ({ userToken, person, text, command, finished }) => {
     commandSection.textContent = convertCommandString(command);
     textSection.textContent = text;
-    if (commandToken){
-      if (token === commandToken) {
-        alert("Robot is being used by you, " + convertUserString(person));
+
+    //si hay un comando en curso
+    if (userToken){
+      //si el comando eso mio
+      if (token === userToken) {
+        //si el usuario utilizando el robot es diferentes al que habia 
+        if(commandToken !== userToken){
+          alert("Robot is being used by you, " + convertUserString(person));
+        }
         textSection.style.color = "green";
-        recordButton.disabled = false;
+
+        //si esta finalizado
+        console.log(finished)
+        if (finished) recordButton.disabled = false;
+        //si no esta finalizado
+        else recordButton.disabled = true;
+
       } else {
+        //si el comando no es mio
         alert("Robot is being used by " + convertUserString(person));
         textSection.style.color = "red";
         recordButton.disabled = true;
       }
     }
     else{
+      //si no hay comando
       recordButton.disabled = false;
     }
   });
