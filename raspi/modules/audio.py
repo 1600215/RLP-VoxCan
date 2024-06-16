@@ -4,19 +4,11 @@ import re
 import sys
 import os
 
-from modules.web import set_command, finish_command
-from constants import State, AUDIO_FOLDER
+from modules.web import set_command, go_standby
+from constants import State, AUDIO_FOLDER, MESSAGE_WALK, MESSAGE_AUDIO
 from voiceIdent import predict
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-class AudioProcessingError(Exception):
-    """Excepción personalizada para errores en el procesamiento de audio."""
-    pass
-
-class SpeechRecognitionError(Exception):
-    """Excepción personalizada para errores en el reconocimiento de voz."""
-    pass
 
 def extract_degrees(text):
     """
@@ -57,11 +49,11 @@ async def recognize_audio(file_path):
                 text = recognizer.recognize_google(audio_data, language='es-ES')
                 return text
             except sr.UnknownValueError:
-                raise SpeechRecognitionError("Google Speech Recognition could not understand the audio")
+                return None
             except sr.RequestError as e:
-                raise SpeechRecognitionError(f"Could not request results from Google Speech Recognition; {e}")
+                raise Exception(f"Error en la solicitud de reconocimiento de voz: {e}")
     except Exception as e:
-        raise AudioProcessingError(f"Error processing the audio file: {e}")
+        raise Exception(f"Error al abrir el archivo de audio: {e}")
 
 async def recognize_audio_from_file(file_path, state=State.STANDBY, audio_folder=AUDIO_FOLDER):
     """
@@ -79,13 +71,12 @@ async def recognize_audio_from_file(file_path, state=State.STANDBY, audio_folder
         audio = AudioSegment.from_file(file_path)
         audio.export(file_path, format="wav")
     except Exception as e:
-        raise AudioProcessingError(f"Error exporting audio file: {e}")
-
+        raise Exception(f"Error exporting audio file: {e}")
     try:
         person, t = predict(audio=file_path)
         print("Persona identificada:", person, "en tiempo:", t)
     except Exception as e:
-        raise AudioProcessingError(f"Error predicting audio file: {e}")
+        raise Exception(f"Error predicting audio file: {e}")
 
     if person == 4:
         return state
@@ -93,12 +84,8 @@ async def recognize_audio_from_file(file_path, state=State.STANDBY, audio_folder
     try:
         text = await recognize_audio(file_path)
         print("Texto reconocido:", text)
-    except SpeechRecognitionError as e:
-        print(e)
-        return state
-    except AudioProcessingError as e:
-        print(e)
-        return state
+    except Exception as e:
+        raise Exception(f"Error recognizing audio file: {e}")
 
     if text is None:
         return state
@@ -194,7 +181,7 @@ async def walk_state(text, file_path, person, state, audio_folder):
             return state
 
     elif ("para" in text) or ("stop" in text) or ("termina" in text):
-        if await finish_command():
+        if await go_standby():
             await cleanup_files(audio_folder=audio_folder)
             return State.STANDBY
 
@@ -239,7 +226,7 @@ async def standup_state(text, file_path, person, state, audio_folder):
         State: The new state of the system after processing the command.
     """
     if ("termina" in text) or ("para" in text) or ("stop" in text):
-        if await finish_command():
+        if await go_standby():
             await cleanup_files(audio_folder=audio_folder)
             return State.STANDBY
 
@@ -279,7 +266,7 @@ async def rotate_state(text, file_path, person, state, audio_folder):
 
     """
     if ("termina" in text) or ("para" in text) or ("stop" in text):
-        if await finish_command():
+        if await go_standby():
             await cleanup_files(audio_folder=audio_folder)
             return State.STANDBY
 
@@ -294,7 +281,33 @@ async def rotate_state(text, file_path, person, state, audio_folder):
     else:
         return state
 
-async def process_files(audio_folder=AUDIO_FOLDER, state=State.STANDBY):
+async def walkStop(queueWalk, audio_folder):
+    """
+    Stops the walking action and performs cleanup if the robot has collided.
+
+    Args:
+        queueWalk (Queue): The queue containing the walking messages.
+        audio_folder (str): The path to the audio folder.
+
+    Returns:
+        bool: True if the walking action was stopped and cleanup was performed, False otherwise.
+    """
+    #comprueba que la cola que se comunica con el thread que ejecuta el movimiento no esta vacia
+    if not queueWalk.empty():
+        #recibit el comando
+        income_message = await queueWalk.get()
+        #si el comando es correcto
+        if income_message == MESSAGE_WALK:
+            #ves a estado STANDBY ya que se ha chocado
+            if await go_standby():
+                #limpia la carpeta uploads
+                await cleanup_files(audio_folder=audio_folder)
+                return True
+    #devuelve false ya que no se ha chocado el robot
+    return False
+                    
+
+async def process_files(audio_folder=AUDIO_FOLDER, state=State.STANDBY, queue=None):
     """
     Process audio files in the specified folder.
 
@@ -308,24 +321,56 @@ async def process_files(audio_folder=AUDIO_FOLDER, state=State.STANDBY):
     Raises:
         AudioProcessingError: If there is an error while processing audio files.
     """
+    
+    #varaibles locales para el correcto funcionamiento de la función
     archivos = os.listdir(audio_folder)
     res = state
+    
+    #comprobar comunicación entre movimiento y control de los estados con audio
+    if state == State.WALK:
+        if not isinstance(queue, tuple): return
+        else: queueAudio, queueWalk = queue
+    
     for archivo in archivos:
+        
+        ##comporbar que no se ha chocado el robot
+        if state == State.WALK and await walkStop(queueWalk, audio_folder): return State.STANDBY
+
         if archivo.lower().endswith('.wav'):
+            #detecta nueov archivo wav
             print(f"Nuevo archivo WAV detectado: {archivo}")
             ruta_archivo = os.path.join(audio_folder, archivo)
+            
             try:
+                #a partir del archivo. devuelve si hay una comanda de cambio de estado en funcion del estado actual y del audio
                 res = await recognize_audio_from_file(ruta_archivo, state, audio_folder=audio_folder)
-            except AudioProcessingError as e:
-                print(f"Error al procesar el archivo de audio: {e}")
+                
+                #comprobar que pasa de WALK a OTRO_ESTADO, en caso afirmativo, mandar info a movimiento
+                if state == State.WALK and res != State.WALK:
+                    print("cambio de estado de  walk -> ", res)        
+                    await queueAudio.put(MESSAGE_AUDIO)
+            
+            #escepcion si falla recognize_audio_from_file
             except Exception as e:
-                print(f"Error inesperado: {e}")
+                raise Exception(f"Error al procesar el archivo de audio: {e}")
+        
             try:
+                #eliminar el archivo
                 if len(os.listdir(audio_folder)) > 0:
                     os.remove(ruta_archivo)
                     print(f"Archivo {archivo} eliminado correctamente.")
+                    
+            #excpecion sobre la eliminacion del archivo
             except Exception as e:
-                print(f"Error al eliminar el archivo {archivo}: {e}")
+                raise Exception(f"Error al eliminar el archivo {archivo}: {e}")
+            
+        #si ha cambiado de estado, no analizar mas audios
+        if res != state:
+            break
+
+    #comprobar si no se ha chocado mientras se analizaba el ultimo audio
+    if state == State.WALK and await walkStop(queueWalk, audio_folder): return State.STANDBY
+    #si no se ha chocado el robot en caso de estar en estado WALK, devolver res
     return res
 
 async def cleanup_files(audio_folder=AUDIO_FOLDER):
@@ -351,4 +396,4 @@ async def cleanup_files(audio_folder=AUDIO_FOLDER):
                 os.remove(ruta_archivo)
                 print(f"Archivo {archivo} eliminado correctamente.")
             except Exception as e:
-                print(f"Error al eliminar el archivo {archivo}: {e}")
+                raise Exception(f"Error al eliminar el archivo {archivo}: {e}")
