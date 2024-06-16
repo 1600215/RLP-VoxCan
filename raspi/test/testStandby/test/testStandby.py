@@ -7,10 +7,54 @@ AUDIO_FOLDER = os.path.abspath('uploads')  # Cambia esto por la ruta de tu carpe
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 
 from modules.audio import process_files
-from constants import State
+from modules.web import finish_command
+from constants import State, MESSAGE_WALK, MESSAGE_AUDIO
 
 current_state = State.STANDBY  # Variable global para el estado actual
 rotate_degrees = None  # Variable global para los grados de giro
+
+
+async def sit():
+    await asyncio.sleep(10)
+    return 
+
+async def rotate(degrees):
+    print("ROTATE ", degrees)
+    await asyncio.sleep(10)
+    return 
+
+async def standup():
+    await asyncio.sleep(10)
+    return
+
+async def walk(queue):
+    
+    if not isinstance(queue, tuple):
+        return 
+    queueWalk, queueAudio = queue
+    count = 0
+    
+    while True:
+        print("moviendo pierna izquierda")
+        #mover pierna izquierda
+        await asyncio.sleep(1)
+        #mover pierna derecha
+        print("moviendo pierna derecha")
+        await asyncio.sleep(1)
+        
+        #comprobar que robot no se choca mediante el sensor ultrasonidos
+        if count > 5:
+            print("Limite, se choca el robot")
+            await queueWalk.put(MESSAGE_WALK)
+            await asyncio.sleep(1)
+            return
+        #comprobar que robot no quiere cambiar de estado
+        if not queueAudio.empty():
+            incoming_message = await queueAudio.get()
+            if incoming_message == MESSAGE_AUDIO :
+                print("Cambio de estado recibido")
+                return 
+        count = count + 1
 
 async def main():
     """
@@ -26,115 +70,203 @@ async def main():
         None
     """
     global current_state, rotate_degrees
+    queueAudio = asyncio.Queue()
+    queueWalk = asyncio.Queue()
+    
     while True:
+                   #Estado STANDBY
         if current_state == State.STANDBY:
-            #todo NADA
+            
+            """
+            En el estado STANDBY, el sistema espera nuevos comandos
+            """   
+                            
             while True: 
-                print("Esperando comando desde la Raspberry Pi...")
+                print(f"Estado actual STANDBY, esperando nuevos comandos")
+                
                 # Llamar a process_files con la variable global current_state
-                audio_task = asyncio.create_task(process_files(audio_folder=AUDIO_FOLDER, state=current_state))
+                audio_task = asyncio.create_task(process_files( audio_folder=AUDIO_FOLDER, state=current_state))
                 
-                print(f"Current state: {current_state}")
-        
                 # Esperar a que la tarea de procesamiento de audio se complete
                 next_state = await audio_task
-                print(f"Audio processing completed. Next state: {next_state}")
 
-
+                #si devuevle un tupla -> estado siguiente ROTATE, inicializa variable rotate_degrees
+                #y también cambia de estado
                 if isinstance(next_state, tuple):
-                    current_state, rotate_degrees = next_state
+                    next, rotate_degrees = next_state
+                    if next != current_state:
+                        current_state = next
+                        break
+                
+                #caso contrario cambia de estado a next_state
                 else:
-                    current_state = next_state
-
-                if next_state != current_state:
-                    break
+                    if next_state != current_state:
+                        current_state = next_state
+                        print(f"Siguiente estado: {current_state}")
+                        break
 
                 await asyncio.sleep(1)
-
+            
+        #-----------------------------------------------------------------------    
+        #Estado SIT
         elif current_state == State.SIT:
+
+            """
+            realizar comando SIT, genera la tarea y cuando termina manda finish_command al servidor,
+            este volverá a habilitar el botón
+            """
             
-            #todo lo relacionado con el sentarse llamando a una tarea
+            #realizar comando sit con una tarea
+            print("empezando estado SIT")
+            sit_task = asyncio.create_task(sit())
+            await sit_task
             
+            #una vez terminado el comando SIT, comunicar que se finaliza el comando a los usarios de la web, sino se devuelve codigo 200 ERROR.
+            print("terminado SIT")
+            res = await finish_command()
+            if not res: 
+                raise Exception("error")
+
+            #bucle infinito para generar tareas que analizen la carpeta AUDIO_FOLDER
             while True:
-                audio_task = asyncio.create_task(process_files(audio_folder=AUDIO_FOLDER, state=current_state))
                 
-                print(f"Current state: {current_state}")
+                print(f"Estado actual SIT, esperando nuevos comandos")
+                
+                #generar una tarea para analizar los archivos de AUDIO_FOLDER
+                audio_task = asyncio.create_task(process_files( audio_folder=AUDIO_FOLDER, state=current_state))
             
-        
                 # Esperar a que la tarea de procesamiento de audio se complete
                 next_state = await audio_task
-                print(f"Audio processing completed. Next state: {next_state}")
-
+                
+                #en caso de cambiar de estado
                 if next_state != current_state:
                     current_state = next_state
+                    print("Siguiente estado: ", current_state)               
                     break
                 
                 await asyncio.sleep(1)
         
+        #-----------------------------------------------------------------------    
+        #Estado STANDUP
         elif current_state == State.STANDUP:
             
-            #todo codigo relacionado con levantarse llamando a una tarea
+            """
+            realizar comando STANDUP, genera la tarea y cuando termina manda finish_command al servidor,
+            este volverá a habilitar el botón
+            """
             
-            while True: 
-                audio_task = asyncio.create_task(process_files(audio_folder=AUDIO_FOLDER, state=current_state))
+            #realizar comando STANDUP con una tarea
+            print("empezando estado STANDUP")
+            sit_task = asyncio.create_task(standup())
+            await sit_task
+            
+            #una vez terminado el comando STANDUP, comunicar que se finaliza el comando a los usarios de la web, sino se devuelve codigo 200 ERROR.
+            print("terminado STANDUP")
+            res = await finish_command()
+            if not res: 
+                raise Exception("error")
+
+            #bucle infinito para generar tareas que analizen la carpeta AUDIO_FOLDER
+            while True:
                 
-                print(f"Current state: {current_state}")
+                print(f"Estado actual STANDUP, esperando nuevos comandos")
+                
+                #generar una tarea para analizar los archivos de AUDIO_FOLDER
+                audio_task = asyncio.create_task(process_files( audio_folder=AUDIO_FOLDER, state=current_state))
+            
                 # Esperar a que la tarea de procesamiento de audio se complete
                 next_state = await audio_task
-                print(f"Audio processing completed. Next state: {next_state}")
-
+                
+                #si devuevle un tupla -> estado siguiente ROTATE, inicializa variable rotate_degrees
+                #y también cambia de estado
                 if isinstance(next_state, tuple):
-                    current_state, rotate_degrees = next_state
+                    next, rotate_degrees = next_state
+                    if next != current_state:
+                        current_state = next
+                        break
+                
+                #caso contrario cambia de estado a next_state
                 else:
-                    current_state = next_state
-
-                if next_state != current_state:
-                    break
+                    if next_state != current_state:
+                        current_state = next_state
+                        print(f"Siguiente estado: {current_state}")
+                        break
 
                 await asyncio.sleep(1)
-
-    
+        
+        #-----------------------------------------------------------------------    
+        #Estado WALK
         elif current_state == State.WALK:
             
-            #todo lo relacionado con el movimiento llamando a una tarea
+            print("Empezando estado WALK")
             
+            """
+            realizar comando WALK, genera la taska y se comunican las dos tareas mediante una cola,
+            si entra un archivo de cambio de estado notifica y para de caminar
+            """
+
+            #tarea paralela a la lectura de archivos para no parar de andar hasta recibir otro comando y/o chocarse
+            asyncio.create_task(walk(queue=(queueWalk, queueAudio)))
+                
             while True: 
-                audio_task = asyncio.create_task(process_files(audio_folder=AUDIO_FOLDER, state=current_state))
                 
-                print(f"Current state: {current_state}")
-                # Esperar a que la tarea de procesamiento de audio se complete
-                next_state = await audio_task
-                print(f"Audio processing completed. Next state: {next_state}")
+                print(f"Estado actual WALK, esperando nuevos comandos")
 
+                #tarea para analizar la carpeta AUDIO_FOLDER
+                audio_task = asyncio.create_task(process_files(audio_folder=AUDIO_FOLDER, state=current_state, queue=(queueAudio, queueWalk)))
+                next_state = await audio_task
+
+                #si devuevle un tupla -> estado siguiente ROTATE, inicializa variable rotate_degrees
+                #y también cambia de estado
                 if isinstance(next_state, tuple):
-                    current_state, rotate_degrees = next_state
-                else:
-                    current_state = next_state
-
-                if next_state != current_state:
-                    break
+                    next, rotate_degrees = next_state
+                    if next != current_state:
+                        current_state = next
+                        break
                 
+                #caso contrario cambia de estado a next_state
+                else:
+                    if next_state != current_state:
+                        current_state = next_state
+                        print(f"Siguiente estado: {current_state}")
+                        break
+
                 await asyncio.sleep(1)
                 
+        #-----------------------------------------------------------------------    
+        #Estado ROTATE 
         elif current_state == State.ROTATE:
+            """
+            En el estado SIT_DOWN, el sistema ejecuta la acción de sentarse,
+            utilizando la función sit. Luego, cambia de estado a STANDBY.
+            """
+            #realizar comando ROTATE
+            print("empezando estado ROTATE")
+            rotate_task = asyncio.create_task(rotate(rotate_degrees))
+            await rotate_task
             
-            #todo lo relacionado con el giro llamando a una tarea
-            print("Grados de giro:", rotate_degrees)
-            
-            
+            #indicar a los usuarios de la web que se ha terminado el comando ROTATE
+            print("terminado ROTATE")
+            res = await finish_command()
+            if not res: raise Exception("error")
+
             while True:
-                audio_task = asyncio.create_task(process_files(audio_folder=AUDIO_FOLDER, state=current_state))
                 
-                print(f"Current state: {current_state}")
+                print(f"Estado actual ROTATE, esperando nuevos comandos")
+                
+                #generar una tarea para analizar los archivos de AUDIO_FOLDER
+                audio_task = asyncio.create_task(process_files( audio_folder=AUDIO_FOLDER, state=current_state))
+            
                 # Esperar a que la tarea de procesamiento de audio se complete
                 next_state = await audio_task
-                print(f"Audio processing completed. Next state: {next_state}")
-
+                
+                #en caso de cambiar de estado
                 if next_state != current_state:
                     current_state = next_state
+                    print("Siguiente estado: ", current_state)               
                     break
-                
+                                    
                 await asyncio.sleep(1)
-
+                
 if __name__ == "__main__":
     asyncio.run(main())
