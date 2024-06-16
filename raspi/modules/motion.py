@@ -5,7 +5,7 @@ import asyncio
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from constants import Axis, L1, L2, DERECHA, IZQUIERDA, WALK, UMBRAL_DESBALANCE
-from raspi.modules.arduino import setPos
+from modules.arduino import setPos
 from modules.accel import calcular_desbalanceo
 
 # Función de calibración
