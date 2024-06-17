@@ -4,7 +4,7 @@ import asyncio
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from constants import Axis, L1, L2, DERECHA, IZQUIERDA, WALK, UMBRAL_DESBALANCE
+from constants import Axis, L1, L2, DERECHA, IZQUIERDA, WALK, UMBRAL_DESBALANCE, MotionState
 from modules.arduino import setPos
 from modules.accel import calcular_desbalanceo
 
@@ -173,86 +173,85 @@ def bajar_cadera(type, servo1, servo2, desplazamiento_vertical, calibrations):
     return (rodilla_x, rodilla_y), (theta1_new, theta2_new)
 
 
+async def setPosAngle(paso, leg, calibrations):
+    if leg == DERECHA:
+        servo1 = map_angle_to_servo(Axis.DERECHO_SUP, paso[0], calibrations)
+        servo2 = map_angle_to_servo(Axis.DERECHO_INF, paso[1], calibrations)
+        
+        #comprueba que el mapeado ha sido correcto
+        if servo1 is None or servo2 is None:
+            raise Exception("Map angle -> servo incorrect")
+
+        #setPos a la posición paso
+        return await setPos({str(Axis.DERECHO_SUP): servo1, str(Axis.DERECHO_INF): servo2})
+    if leg == IZQUIERDA:
+        servo1 = map_angle_to_servo(Axis.IZQUIERDO_SUP, paso[0], calibrations)
+        servo2 = map_angle_to_servo(Axis.IZQUIERDO_INF, paso[1], calibrations)
+        
+        #comprueba que el mapeado ha sido correcto
+        if servo1 is None or servo2 is None:
+            return False
+        
+        #setPos a la posició paso
+        return await setPos({str(Axis.IZQUIERDO_SUP): servo1, str(Axis.IZQUIERDO_INF): servo2})
+        
+
 async def move_robot(calibrations):
     """
-    Move the robot in a loop.
+    Moves the robot by controlling the servos based on the given calibrations.
 
     Parameters:
-        lock (asyncio.Lock): A lock to ensure exclusive access to the robot's movement.
-        leg (str): The initial leg to move.
-        duration (int): Duration in seconds for how long the robot should move.
+    - calibrations: A dictionary containing the calibration values for the servos.
 
     Returns:
-        None
+    - None
+
+    Raises:
+    - Exception: If there is an error in the position or while calculating imbalance.
     """
+    
+
     leg = DERECHA
-    desplazamiento_vertical = 0
+    state = MotionState.INIT
+    
     while True:
-        for paso in WALK:
-            if leg == IZQUIERDA:
-                # Mapear los ángulos a los servos
-                servo1 = map_angle_to_servo(Axis.IZQUIERDO_SUP, paso[0], calibrations)
-                if servo1 is None: raise Exception("Position incorrect")
-                servo2 = map_angle_to_servo(Axis.IZQUIERDO_INF, paso[1], calibrations)
-                if servo2 is None: raise Exception("Position incorrect")
-                
-                # Enviar los ángulos a los servos
-                set = await setPos({str(Axis.IZQUIERDO_SUP): servo1, str(Axis.IZQUIERDO_SUP): servo2})
-                if not set: raise Exception("Error while setting position")
-                
-                # Calcular el desbalanceo
-                incl_x , incl_y = calcular_desbalanceo()
-                if incl_x is None or incl_y is None: raise Exception("Error while calculating imbalance")
-                # Bajar la cadera si el desbalanceo es mayor al umbral
-                if incl_y > UMBRAL_DESBALANCE:
-                    desplazamiento_vertical = desplazamiento_vertical - 0.5
-                    _ , (theta1, theta2) = bajar_cadera('DERECHA', servo1, servo2, desplazamiento_vertical) 
-                    set = await setPos({str(Axis.DERECHO_SUP): theta1, str(Axis.DERECHO_INF): theta2})
-                    if not set: raise Exception("Error while setting position")
-                
-            elif leg == IZQUIERDA:
-                # Mapear los ángulos a los servos
-                servo1 = map_angle_to_servo(Axis.DERECHO_SUP, paso[0], calibrations)
-                if servo1 is None: raise Exception("Position incorrect")
-                servo2 = map_angle_to_servo(Axis.DERECHO_INF, paso[1], calibrations)
-                if servo2 is None: raise Exception("Position incorrect")
-                
-                #Enviar los ángulos a los servos
-                set = await setPos({str(Axis.DERECHO_SUP): servo1, str(Axis.DERECHO_INF): servo2})
-                if not set: raise Exception("Error while setting position") 
         
-                # Calcular el desbalanceo
-                incl_x , incl_y = calcular_desbalanceo()
-                if incl_x is None or incl_y is None: raise Exception("Error while calculating imbalance")
-                # Bajar la cadera si el desbalanceo es mayor al umbral
-                if incl_y > UMBRAL_DESBALANCE:
-                    desplazamiento_vertical = desplazamiento_vertical - 0.5
-                    _ , (theta1, theta2) = bajar_cadera('IZQUIERDA', servo1, servo2, desplazamiento_vertical) 
-                    set = await setPos({str(Axis.IZQUIERDO_SUP): theta1, str(Axis.IZQUIERDO_INF): theta2})
-                    if not set: raise Exception("Error while setting position")
-            else: 
-                raise Exception("Leg not found while walking")
+        #estado subir cadera
+        if state == MotionState.PASO0:
+            if not await setPosAngle(WALK[0], leg, calibrations):
+                raise Exception("Error while setting position, estado INIT")
             
-        if leg == DERECHA:
-            leg = IZQUIERDA
-            #devolver la cadera contraria a su posición
-            servo1 = map_angle_to_servo(Axis.DERECHO_SUP, WALK[-1][0], calibrations)
-            if servo1 is None: raise Exception("Position incorrect")
-            servo2 = map_angle_to_servo(Axis.DERECHO_INF, WALK[-1][0], calibrations)
-            if servo2 is None: raise Exception("Position incorrect")
+            state = MotionState.PASO3  # Pasar al siguiente estado
             
-            set = await setPos({str(Axis.DERECHO_SUP): servo1, str(Axis.IZQUIERDO_INF): servo2})
-            if not set: raise Exception("Error while setting position")
-                
-        elif leg ==IZQUIERDA:
-            leg = DERECHA
-            #devolver la cadera contraria a su posición
-            servo1 = map_angle_to_servo(Axis.IZQUIERDO_SUP, WALK[-1][0], calibrations)
-            if servo1 is None: raise Exception("Position incorrect")
-            servo2 = map_angle_to_servo(Axis.IZQUIERDO_INF, WALK[-1][0], calibrations)
-            if servo2 is None: raise Exception("Position incorrect")
+        #estado devolver la rodilla de la otra pierna a la posición inicial
+        elif state == MotionState.PASO3:
             
-            set = await setPos({str(Axis.IZQUIERDO_SUP): servo1, str(Axis.IZQUIERDO_SUP): servo2})
-            if not set: raise Exception("Error while setting position")
-                
+            if leg == DERECHA:
+                other_leg = IZQUIERDA
+            elif leg == IZQUIERDA:
+                other_leg = DERECHA
+            
+            #volver a la posición inicial en la pierna contraria una vez que la otra pierna ya ha sido levantada
+            if not await setPosAngle(WALK[3], other_leg, calibrations):
+                raise Exception("Error while setting position, estado PASO4")
+            
+            state = MotionState.PASO1  # Pasar al siguiente estado
+        
+        #estado subir rodilla y cadera
+        elif state == MotionState.PASO1:
+            if not await setPosAngle(WALK[1], leg, calibrations):
+                raise Exception("Error while setting position, estado PASO1")
+            
+            state = MotionState.PASO2  # Pasar al siguiente estado
+        
+        #estado bajar cadera con rodilla subida
+        elif state == MotionState.PASO2:
+            if not await setPosAngle(WALK[2], leg, calibrations):
+                raise Exception("Error while setting position, estado PASO2")
+            
+            state = MotionState.PASO3  # Pasar al siguiente estado
+
+        else:
+            raise Exception("Invalid state")
+        
         await asyncio.sleep(1)
