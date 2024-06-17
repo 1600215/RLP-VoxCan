@@ -50,6 +50,12 @@ WALK = [
     (175, 100)   # Paso 5 (volver al paso inicial)
 ]
 
+class MotionState: 
+    PASO0 = 0
+    PASO1 = 1
+    PASO2 = 2
+    PASO3 = 3
+    
 
 L1 = 13.5
 L2 = 17
