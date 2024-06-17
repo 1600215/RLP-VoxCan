@@ -1,17 +1,7 @@
 ## Estructura del Programa
 
-### Módulo de Audio (`modules.audio`)
+### Estados de la máquina de estados del Robot (`main.py`)
 
-- **Detección de Archivos de Audio**: Detecta nuevos archivos WAV subidos por diferentes clientes.
-- **Procesamiento de Audio**: Convierte el archivo a formato WAV si es necesario, predice la identidad de la persona en el audio, y reconoce el texto usando Google Speech Recognition.
-- **Comandos de Voz**: Extrae y ejecuta comandos de voz reconocidos para cambiar el estado del robot (e.g., "siéntate", "ven aquí", "gira").
-- **Manejo de Estados**: Dependiendo del texto reconocido y del estado actual, transita entre diferentes estados (`STANDBY`, `WALK`, `SIT`, `STANDUP`, `ROTATE`).
-- **Interacción con el Servidor Web**: Notifica al servidor web el inicio y fin de procesamiento de comandos.
-
-### Bucle Principal del Robot (`main.py`)
-
-- **Inicialización de Hardware**: Configura GPIO para LEDs, inicializa el puerto serie para comunicación con un Arduino Nano, e inicializa un sensor MPU6050.
-- **Gestión de Estados**: Mantiene un bucle continuo que monitoriza y actualiza el estado del robot basado en los comandos de voz procesados.
 - **Estados del Robot**:
   - `CONNECT`: Conexión con el Arduino Nano.
   - `SET_INIT`: Configuración inicial de la posición del robot.
@@ -36,39 +26,32 @@
 4. **Ejecución de Acciones Basadas en Estados**:
    - Cada estado del robot tiene su propio conjunto de acciones que se ejecutan hasta recibir un nuevo comando de voz.
 
-## Interacciones Clave
+### Módulo de Audio (`modules.audio`)
 
-- **Usuario**: Sube archivos de audio con comandos de voz.
-- **Módulo de Audio**: Procesa los archivos de audio, reconoce el texto y determina los comandos.
-- **Bucle Principal**: Controla el estado del robot y ejecuta acciones basadas en los comandos de voz.
-- **Servidor Web**: Interactúa con el módulo de audio para indicar el inicio y fin del procesamiento de comandos.
-
-## Estado del Robot
-
-Los estados del robot controlan las acciones específicas que realiza. Los estados clave incluyen:
-
-- `STANDBY`: El robot está en espera y listo para recibir nuevos comandos.
-- `WALK`: El robot camina hacia una dirección específica.
-- `SIT`: El robot se sienta.
-- `STANDUP`: El robot se levanta de una posición sentada.
-- `ROTATE`: El robot gira a un ángulo específico basado en el comando de voz.
+- **Detección de Archivos de Audio**: Detecta nuevos archivos WAV subidos por diferentes clientes.
+- **Procesamiento de Audio**: Convierte el archivo a formato WAV si es necesario, predice la identidad de la persona en el audio, y reconoce el texto usando Google Speech Recognition.
+- **Comandos de Voz**: Extrae y ejecuta comandos de voz reconocidos para cambiar el estado del robot (e.g., "siéntate", "ven aquí", "gira").
+- **Manejo de Estados**: Dependiendo del texto reconocido y del estado actual, transita entre diferentes estados (`STANDBY`, `WALK`, `SIT`, `STANDUP`, `ROTATE`).
+- **Interacción con el Servidor Web**: Notifica al servidor web el inicio y fin de procesamiento de comandos.
 
 
-## Instalación y Ejecución
+### Módulo Motion
 
-### Requisitos
+- **Cinemática inversa y directa del robot**: A partir de un estudio previmente hecho se crea una matriz de transformaciones del robot que implementa tanto cinematica inversa y directa del robot.
 
-- Python 3.8 o superior
-- Dependencias listadas en `requirements.txt`
+- **Mapeado de angulos (esquema -> servos) & (servos -> esquema)**: Funciones necesarias para implementar la conversión de los angulos del esquema con los angulos de los servos.
 
-### Instalación
+- **Movimiento, funciones que realizan los estados de la máquina de estados del robot**: Implementación de las funcioes de WALK, SIT, 
+STANDUP, ROTATE.
 
-```bash
-pip install -r requirements.txt
-```
+### Módulo Calibrate
 
-### Ejecución
+- **Calibración del robot**: Algoritmo que recorre una serie de angulos despalazados al original para intentar poner el robot lo más equilibrado posible.
 
-```bash
-python main.py
-```
+### Módulo Web
+
+- **Comunicación con servidor web**:Funciones que mandan peticiones al servidor web de la web que controla el robot.
+
+### Módulo arduino
+
+- **Comunicación Arduino - Raspi**:La raspberry pi y el arduino están conectados mediante el puerto serie, a partir del protocolo de comunicación establecido con JSONs, se enviarán comandos y se recibirán datos.
