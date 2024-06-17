@@ -54,17 +54,6 @@ Los estados del robot controlan las acciones específicas que realiza. Los estad
 - `ROTATE`: El robot gira a un ángulo específico basado en el comando de voz.
 
 
-## Consideraciones de Error
-
-- **Errores de Procesamiento de Audio**: Se manejan mediante excepciones personalizadas (`AudioProcessingError`, `SpeechRecognitionError`).
-- **Errores de Hardware**: Se manejan excepciones para inicialización y comunicación con el hardware.
-
-## Diagrama de Secuencia
-
-![Diagrama de Secuencia](diagrama_secuencia.png)
-
-Este diagrama de secuencia captura la interacción entre los componentes y refleja cómo se manejan los comandos de voz para controlar el estado del robot.
-
 ## Instalación y Ejecución
 
 ### Requisitos
