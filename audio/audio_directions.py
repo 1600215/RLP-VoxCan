@@ -30,14 +30,14 @@ def get_max_volumes(audio1, audio2, audio3, audio4):
     return max_audio, direction
 
 def main():
-    input_path = "audio/1m_audios/"
+    input_path = "audio/"
 
     # Define cada microfono con un id y su dirección
     audio_files = {
-        "mic01fr": (input_path + 'audio_bueno2.mp3', "front-right"),
-        "mic02fl": (input_path + 'audio_bueno.mp3', "front-left"),
-        "mic03br": (input_path + 'audio_chanel8_newmic.mp3', "back-right"),
-        "mic04bl": (input_path + 'audio_ruido_ambiental.mp3', "back-left")
+        "mic01fr": (input_path + 'audio_channel_0_20240606_122858.mp3', "front-right"),
+        "mic02fl": (input_path + 'audio_channel_1_20240606_122914.mp3', "front-left"),
+        "mic03br": (input_path + 'audio_channel_7_20240606_122914.mp3', "back-right"),
+        "mic04bl": (input_path + '1m_audios/audio_ruido_ambiental.mp3', "back-left")
     }
 
     max_audio, audio_direction = get_max_volumes(
