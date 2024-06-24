@@ -7,8 +7,8 @@ const fs = require("fs");
 
 // Opciones para la configuración HTTPS
 const options = {
-  key: fs.readFileSync("server/certs/key.pem"),
-  cert: fs.readFileSync("server/certs/cert.pem"),
+  key: fs.readFileSync("certs/key.pem"),
+  cert: fs.readFileSync("certs/cert.pem"),
   secureProtocol: "TLSv1_2_method", // Especifica la versión de SSL/TLS aquí
 };
 
