@@ -1,6 +1,7 @@
 from constants import Command, Status
 import json
 
+
 #-----------------------------------------------------------------------
 #Función para obtener la posición de los servos
 
@@ -58,7 +59,6 @@ def setPos(ser, params):
         pass
     
     recv = json.loads(ser.readline().decode().rstrip())
-    print(recv)
     if(recv["status"] == Status.OK):
         return True
     
