@@ -1,49 +1,38 @@
 import RPi.GPIO as GPIO
 import time
 
-
-GPIO.setmode(GPIO.BOARD)
-
+# Configuración de los pines GPIO
+GPIO.setmode(GPIO.BCM)
 TRIG = 23
-ECHO = 25
-i=0
+ECHO = 24
+GPIO.setup(TRIG, GPIO.OUT)
+GPIO.setup(ECHO, GPIO.IN)
 
-GPIO.setup(TRIG,GPIO.OUT)
-GPIO.setup(ECHO,GPIO.IN)
+def distancia():
+    # Envía una señal de disparo de 10us
+    GPIO.output(TRIG, True)
+    time.sleep(0.00001)
+    GPIO.output(TRIG, False)
 
-GPIO.output(TRIG, False)
-print "Calibrating....."
-time.sleep(2)
+    # Espera la recepción de la señal
+    while GPIO.input(ECHO) == 0:
+        pulso_inicio = time.time()
 
-print "Place the object......"
+    while GPIO.input(ECHO) == 1:
+        pulso_fin = time.time()
 
+    # Calcula la duración del pulso y la distancia
+    duracion_pulso = pulso_fin - pulso_inicio
+    distancia = duracion_pulso * 17150
+    distancia = round(distancia, 2)
+
+    return distancia
 
 try:
     while True:
-       GPIO.output(TRIG, True)
-       time.sleep(0.00001)
-       GPIO.output(TRIG, False)
-
-       while GPIO.input(ECHO)==0:
-          pulse_start = time.time()
-
-       while GPIO.input(ECHO)==1:
-          pulse_end = time.time()
-
-       pulse_duration = pulse_end - pulse_start
-
-       distance = pulse_duration * 17150
-
-       distance = round(distance+1.15, 2)
-  
-       if distance<=20 and distance>=5:
-          print "distance:",distance,"cm"
-          i=1
-          
-       if distance>20 and i==1:
-          print "place the object...."
-          i=0
-       time.sleep(2)
-
+        dist = distancia()
+        print(f"Distancia: {dist} cm")
+        time.sleep(1)
 except KeyboardInterrupt:
-     GPIO.cleanup()
+    print("Medición detenida por el usuario")
+    GPIO.cleanup()
