@@ -142,7 +142,7 @@ async def standby_state(text, file_path, person, state):
         res = await set_command(file_path, person, text, State.SIT)
         return State.SIT if res else state
 
-    elif "ven aquí" in text:
+    elif ("ven aquí" in text) or ("camina" in text):
         res = await set_command(file_path, person, text, State.WALK)
         return State.WALK if res else state
 
@@ -230,7 +230,7 @@ async def standup_state(text, file_path, person, state, audio_folder):
             await cleanup_files(audio_folder=audio_folder)
             return State.STANDBY
 
-    elif "ven aquí" in text:
+    elif ("ven aquí" in text) or ("camina" in text):
         res = await set_command(file_path, person, text, State.WALK)
         return State.WALK if res else state
 
@@ -274,7 +274,7 @@ async def rotate_state(text, file_path, person, state, audio_folder):
         res = await set_command(file_path, person, text, State.SIT)
         return State.SIT if res else state
 
-    elif "ven aquí" in text:
+    elif ("ven aquí" in text) or ("camina" in text):
         res = await set_command(file_path, person, text, State.WALK)
         return State.WALK if res else state
 
@@ -328,7 +328,8 @@ async def process_files(audio_folder=AUDIO_FOLDER, state=State.STANDBY, queue=No
     
     #comprobar comunicación entre movimiento y control de los estados con audio
     if state == State.WALK:
-        if not isinstance(queue, tuple): return
+        if not isinstance(queue, tuple):
+            return
         else: queueAudio, queueWalk = queue
     
     for archivo in archivos:
