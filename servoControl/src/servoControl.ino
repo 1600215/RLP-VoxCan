@@ -1,4 +1,5 @@
-#include <Servo.h>
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
 #include <ArduinoJson.h>
 
 //--------------------------------------------------------------------
@@ -26,40 +27,52 @@
 #define ERROR 1
 
 //--------------------------------------------------------------------
-// Inicialización de los objetos Servo
+// Inicialización del controlador PCA9685
 
-Servo servos[NUM_SERVOS];
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
+#define SERVO_MIN1 150 // Ajusta según tu servo
+#define SERVO_MAX1 550 // Ajusta según tu servo
+
+
+#define SERVO_MIN2 160 // Ajusta según tu servo
+#define SERVO_MAX2 500 // Ajusta según tu servo
+
 
 //--------------------------------------------------------------------
-// Clase para controlar los servos 
+// Clase para controlar los servos
 
 class ServoControl {
   private:
     uint8_t servoNum;
-    uint8_t angulo;
-    Servo* servo;
+    uint16_t angulo;
   
   public:
-    ServoControl() : servoNum(255), angulo(-1), servo(nullptr) {}
+    ServoControl() : servoNum(255), angulo(-1) {}
     
-    ServoControl(uint8_t num, Servo* srv) {
+    ServoControl(uint8_t num) {
       this->servoNum = num;
-      this->servo = srv;
       this->angulo = -1;
     }
-    ServoControl(uint8_t num, Servo* srv,uint8_t angulo) {
-      this->servoNum = num;
-      this->servo = srv;
-      this->angulo = angulo;
-    }
 
-    void setPosition(uint8_t ang) {
+    void setPosition(uint16_t ang) {
       if (this->angulo == ang) return;
-      servo->write(ang);
+      if (this->servoNum == DERECHO_SUP || this->servoNum == IZQUIERDO_SUP || this->servoNum == DELANTERO){
+        uint16_t pulse = map(ang, 0, 180, SERVO_MIN1, SERVO_MAX1);
+        pwm.setPWM(this->servoNum, 0,pulse);
+      }
+      else {
+        if (this->servoNum == DERECHO_INF || this->servoNum == IZQUIERDO_INF){
+          uint16_t pulse = map(ang, 0, 180, SERVO_MIN2, SERVO_MAX2);
+          pwm.setPWM(this->servoNum, 0,pulse);
+        }
+        else{
+          Serial.println(this->servoNum);
+        }
+      }
       this->angulo = ang;
     }
 
-    uint8_t getPosition() {
+    uint16_t getPosition() {
       return this->angulo;
     }
 };
@@ -67,7 +80,13 @@ class ServoControl {
 //--------------------------------------------------------------------
 // Declaración de los NUM_SERVOS servos
 
-ServoControl servoControllers[NUM_SERVOS];
+ServoControl servoControllers[NUM_SERVOS] = {
+  ServoControl(DERECHO_SUP),
+  ServoControl(DERECHO_INF),
+  ServoControl(IZQUIERDO_SUP),
+  ServoControl(IZQUIERDO_INF),
+  ServoControl(DELANTERO)
+};
 
 //--------------------------------------------------------------------
 // Función que a partir de un json del estilo {"0": 50, "1" : 80} setea todos los ángulos en sus servos correspondientes
@@ -76,7 +95,7 @@ void setServosPosition(const JsonObject& parametros) {
   for (JsonPair kv : parametros) {
     const char* nombreServo = kv.key().c_str();
     int nServo = atoi(nombreServo);
-    uint8_t angulo = kv.value().as<uint8_t>();
+    uint16_t angulo = kv.value().as<uint16_t>();
     servoControllers[nServo].setPosition(angulo);
   }
 }
@@ -98,18 +117,11 @@ DynamicJsonDocument getServosPosition() {
 void setup() {
   Serial.begin(9600);
 
-  // Vincular los objetos Servo a los pines correspondientes y crear ServoControl para cada servo
-  servos[DERECHO_SUP].attach(3);
-  servos[IZQUIERDO_SUP].attach(5);
-  servos[DERECHO_INF].attach(6);
-  servos[IZQUIERDO_INF].attach(9);
-  servos[DELANTERO].attach(10);
+  // Iniciar la conexión I2C
+  pwm.begin();
+  pwm.setPWMFreq(50);  // Frecuencia de 60 Hz para los servos
 
-  servoControllers[DERECHO_SUP] = ServoControl(DERECHO_SUP, &servos[DERECHO_SUP]);
-  servoControllers[IZQUIERDO_SUP] = ServoControl(IZQUIERDO_SUP, &servos[IZQUIERDO_SUP]);
-  servoControllers[DERECHO_INF] = ServoControl(DERECHO_INF, &servos[DERECHO_INF]);
-  servoControllers[IZQUIERDO_INF] = ServoControl(IZQUIERDO_INF, &servos[IZQUIERDO_INF]);
-  servoControllers[DELANTERO] = ServoControl(DELANTERO, &servos[DELANTERO]);
+  delay(1000);
 }
 
 //--------------------------------------------------------------------
