@@ -1,60 +1,39 @@
 import os, sys
 import numpy as np
-import asyncio
+import asyncio, time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from constants import Axis, L1, L2, DERECHA, IZQUIERDA, WALK, UMBRAL_DESBALANCE, MotionState
+from constants import Axis, L1, L2, DERECHA, IZQUIERDA, WALK, MotionState, COMANDOS_STANDUP, MESSAGE_AUDIO, INIT, COMANDOS_SIT, CALIBRATIONS, ALL
 from modules.arduino import setPos
-from modules.accel import calcular_desbalanceo
-
-# Función de calibración
-def calibrate_servo(servo_name, joint_angle_ref, servo_angle_ref, calibrations):
-    """
-    Calibrates a servo by storing the joint angle reference and servo angle reference in the calibrations dictionary.
-
-    Args:
-        servo_name (str): The name of the servo.
-        joint_angle_ref (float): The reference angle of the joint.
-        servo_angle_ref (float): The reference angle of the servo.
-        calibrations (dict): The dictionary containing the servo calibrations.
-
-    Returns:
-        dict: The updated calibrations dictionary.
-    """
-    calibrations[servo_name] = {
-        'joint_angle_ref': joint_angle_ref,
-        'servo_angle_ref': servo_angle_ref,
-    }
-    return calibrations
 
 # Función de mapeo de ángulos
-def map_angle_to_servo(servo_name, joint_angle, calibrations):
+def map_angle_to_servo(servo_name, joint_angle):
     """
-    Maps the joint angle to the corresponding servo angle based on the given servo name and calibrations.
+    Maps the joint angle to the corresponding servo angle based on the calibration values.
 
     Args:
         servo_name (str): The name of the servo.
         joint_angle (float): The joint angle to be mapped.
-        calibrations (dict): The calibration values for the servos.
 
     Returns:
-        float: The mapped servo angle.
+        float: The corresponding servo angle.
 
     Raises:
         None
 
     """
-    calib = calibrations[servo_name]
+    calib = CALIBRATIONS[servo_name]
     
-    if Axis.DERECHO_SUP == servo_name:
+    if Axis.IZQUIERDO_SUP == servo_name:
         servo_angle = (calib['joint_angle_ref'] - joint_angle) + calib['servo_angle_ref']
-    elif Axis.DERECHO_INF == servo_name:
-        servo_angle = (calib['joint_angle_ref'] - joint_angle) + calib['servo_angle_ref']
-    elif Axis.IZQUIERDO_SUP == servo_name:
-        servo_angle = (joint_angle - calib['joint_angle_ref']) + calib['servo_angle_ref']
     elif Axis.IZQUIERDO_INF == servo_name:
         servo_angle = (joint_angle - calib['joint_angle_ref']) + calib['servo_angle_ref']
+    elif Axis.DERECHO_SUP == servo_name:
+        servo_angle = (joint_angle - calib['joint_angle_ref']) + calib['servo_angle_ref']
+    elif Axis.DERECHO_INF == servo_name:
+        servo_angle = (calib['joint_angle_ref'] - joint_angle) + calib['servo_angle_ref']
+
     else:
         return None
     
@@ -63,31 +42,34 @@ def map_angle_to_servo(servo_name, joint_angle, calibrations):
     return servo_angle
 
 # Función de mapeo de servo a ángulo
-def map_servo_to_angle(servo_name, servo_angle, calibrations):
+def map_servo_to_angle(servo_name, servo_angle):
     """
-    Maps the servo angle to the corresponding joint angle based on the given calibrations.
+    Maps the servo angle to the corresponding joint angle based on the servo calibration.
 
     Args:
         servo_name (str): The name of the servo.
         servo_angle (float): The angle of the servo in degrees.
-        calibrations (dict): The calibration values for each servo.
 
     Returns:
-        float: The corresponding joint angle in degrees, or None if the servo angle is out of range.
+        float: The corresponding joint angle in degrees.
+
+    Raises:
+        None
+
     """
     if servo_angle < 0 or servo_angle > 180:
         return None
     
-    calib = calibrations[servo_name]
+    calib = CALIBRATIONS[servo_name]
     
-    if Axis.DERECHO_SUP == servo_name:
+    if Axis.IZQUIERDO_SUP == servo_name:
         joint_angle = calib['joint_angle_ref'] + (calib['servo_angle_ref'] - servo_angle)
-    elif Axis.DERECHO_INF == servo_name:
-        joint_angle = calib['joint_angle_ref'] + (calib['servo_angle_ref'] - servo_angle)
-    elif Axis.IZQUIERDO_SUP == servo_name:
-        joint_angle = (servo_angle - calib['servo_angle_ref']) + calib['joint_angle_ref']
     elif Axis.IZQUIERDO_INF == servo_name:
         joint_angle = (servo_angle - calib['servo_angle_ref']) + calib['joint_angle_ref']
+    elif Axis.DERECHO_SUP == servo_name:
+        joint_angle = (servo_angle - calib['servo_angle_ref']) + calib['joint_angle_ref']
+    elif Axis.DERECHO_INF == servo_name:
+        joint_angle = calib['joint_angle_ref'] + (calib['servo_angle_ref'] - servo_angle)
     else:
         return None
 
@@ -96,7 +78,7 @@ def map_servo_to_angle(servo_name, servo_angle, calibrations):
 
 def cinematica_directa(theta1, theta2):
     """
-    Calculates the forward kinematics of a robotic arm given the joint angles.
+    Calculates the forward kinematics of a robotic leg given the joint angles.
 
     Parameters:
     theta1 (float): Angle of the first joint in degrees.
@@ -104,7 +86,7 @@ def cinematica_directa(theta1, theta2):
 
     Returns:
     tuple: A tuple containing two tuples. The first tuple represents the coordinates of the knee joint (x_rodilla, y_rodilla),
-        and the second tuple represents the coordinates of the foot joint (x_pie, y_pie).
+    and the second tuple represents the coordinates of the foot joint (x_pie, y_pie).
     """
     x_rodilla = L1 * np.cos(np.radians(theta1))
     y_rodilla = L1 * np.sin(np.radians(theta1))
@@ -137,7 +119,7 @@ def cinematica_inversa(x_pie, y_pie, y_hip_new):
     return theta1, theta2
 
 
-def bajar_cadera(type, servo1, servo2, desplazamiento_vertical, calibrations):
+def bajar_cadera(type, desplazamiento_vertical):
     """
     Move the hip joint downwards to lower the leg.
 
@@ -153,11 +135,11 @@ def bajar_cadera(type, servo1, servo2, desplazamiento_vertical, calibrations):
     """
     
     if type == DERECHA: 
-        theta1_inicial = map_servo_to_angle(Axis.DERECHO_SUP, servo1, calibrations)
-        theta2_inicial = map_servo_to_angle(Axis.DERECHO_INF, servo2, calibrations)
+        theta1_inicial = map_servo_to_angle(Axis.DERECHO_SUP, INIT[Axis.DERECHO_SUP])
+        theta2_inicial = map_servo_to_angle(Axis.DERECHO_INF, INIT[Axis.DERECHO_INF])
     elif type == IZQUIERDA:
-        theta1_inicial = map_servo_to_angle(Axis.IZQUIERDO_SUP, servo1, calibrations)
-        theta2_inicial = map_servo_to_angle(Axis.IZQUIERDO_INF, servo2, calibrations)
+        theta1_inicial = map_servo_to_angle(Axis.IZQUIERDO_SUP, INIT[Axis.IZQUIERDO_SUP])
+        theta2_inicial = map_servo_to_angle(Axis.IZQUIERDO_INF, INIT[Axis.IZQUIERDO_INF])
     else:
         return None
     
@@ -173,85 +155,240 @@ def bajar_cadera(type, servo1, servo2, desplazamiento_vertical, calibrations):
     return (rodilla_x, rodilla_y), (theta1_new, theta2_new)
 
 
-async def setPosAngle(paso, leg, calibrations):
+def setPosAngle(ser, leg, theta = (None, None)):
+    """
+    Sets the position angle for a leg or all legs of a robot.
+
+    Args:
+        ser (object): The serial object used for communication with the robot.
+        leg (int): The leg number or ALL to set the position angle for all legs.
+        theta (tuple): The angle values for the leg(s) in the form (theta1, theta2).
+
+    Returns:
+        bool: True if the position angle is set successfully, False otherwise.
+    """
+    theta1, theta2 = theta
+    if theta1 is None or theta2 is None:
+        return False
+    
+    if leg == ALL:
+        servo1D = map_angle_to_servo(Axis.DERECHO_SUP, theta1)
+        servo2D = map_angle_to_servo(Axis.DERECHO_INF, theta2)
+        
+        servo1I = map_angle_to_servo(Axis.IZQUIERDO_SUP, theta1)
+        servo2I = map_angle_to_servo(Axis.IZQUIERDO_INF, theta2)
+        
+        #comprueba que el mapeado ha sido correcto
+        if servo1D is None or servo2D is None or servo1I is None or servo2I is None:
+            return False
+
+        #setPos a la posición paso
+        return setPos(ser, {str(Axis.DERECHO_SUP): servo1D, str(Axis.DERECHO_INF): servo2D, str(Axis.IZQUIERDO_SUP): servo1I, str(Axis.IZQUIERDO_INF): servo2I})
+    
     if leg == DERECHA:
-        servo1 = map_angle_to_servo(Axis.DERECHO_SUP, paso[0], calibrations)
-        servo2 = map_angle_to_servo(Axis.DERECHO_INF, paso[1], calibrations)
+        servo1 = map_angle_to_servo(Axis.DERECHO_SUP, theta1)
+        servo2 = map_angle_to_servo(Axis.DERECHO_INF, theta2)
         
         #comprueba que el mapeado ha sido correcto
         if servo1 is None or servo2 is None:
-            raise Exception("Map angle -> servo incorrect")
+            return False
 
         #setPos a la posición paso
-        return await setPos({str(Axis.DERECHO_SUP): servo1, str(Axis.DERECHO_INF): servo2})
+        return setPos(ser, {str(Axis.DERECHO_SUP): servo1, str(Axis.DERECHO_INF): servo2})
     if leg == IZQUIERDA:
-        servo1 = map_angle_to_servo(Axis.IZQUIERDO_SUP, paso[0], calibrations)
-        servo2 = map_angle_to_servo(Axis.IZQUIERDO_INF, paso[1], calibrations)
+        servo1 = map_angle_to_servo(Axis.IZQUIERDO_SUP, theta1)
+        servo2 = map_angle_to_servo(Axis.IZQUIERDO_INF, theta2)
         
         #comprueba que el mapeado ha sido correcto
         if servo1 is None or servo2 is None:
             return False
         
         #setPos a la posició paso
-        return await setPos({str(Axis.IZQUIERDO_SUP): servo1, str(Axis.IZQUIERDO_INF): servo2})
-        
-
-async def move_robot(calibrations):
+        return setPos(ser, {str(Axis.IZQUIERDO_SUP): servo1, str(Axis.IZQUIERDO_INF): servo2})
+    
+def switch_leg(leg):
     """
-    Moves the robot by controlling the servos based on the given calibrations.
+    Switches the leg parameter to the opposite leg.
 
     Parameters:
-    - calibrations: A dictionary containing the calibration values for the servos.
+    leg (str): The leg to switch. Must be either 'DERECHA' or 'IZQUIERDA'.
 
     Returns:
-    - None
+    str: The opposite leg. Returns 'IZQUIERDA' if 'DERECHA' is passed, and vice versa.
+    None: If an invalid leg is passed.
+    """
+    if (leg == DERECHA): return IZQUIERDA
+    if (leg == IZQUIERDA): return DERECHA
+    else: return None
+    
+async def loop_bajar_cadera(ser, leg, release=False):
+    """
+    Loop to gradually lower the leg's hip joint.
+
+    Args:
+        lock (asyncio.Lock): Lock to synchronize access to shared resources.
+        leg (int): Leg identifier.
+        calibrations (dict): Dictionary containing calibration values.
 
     Raises:
-    - Exception: If there is an error in the position or while calculating imbalance.
+        Exception: If there is an error while calculating inverse kinematics or setting position.
+
+    Returns:
+        None
     """
     
+    #opcion para bajar la cadera directamente
+    if release:
+        _ , (theta1, theta2) = bajar_cadera(leg, -2)
+        if not setPosAngle(ser, leg, theta=(theta1, theta2)):
+                raise Exception("Error while setting position in loop_bajar_cadera")
+        await asyncio.sleep(0.2)
+        _ , (theta1, theta2) = bajar_cadera(leg, -4)        
+        if not setPosAngle(ser, leg, theta=(theta1, theta2)):
+                raise Exception("Error while setting position in loop_bajar_cadera")
+        await asyncio.sleep(0.2)
+        _ , (theta1, theta2) = bajar_cadera(leg, -6)
+        if not setPosAngle(ser, leg, theta=(theta1, theta2)):
+                raise Exception("Error while setting position in loop_bajar_cadera")
+        await asyncio.sleep(0.5)
+        return
+        
+
+    for desplazamiento_cadera in np.arange(-0.0, -6.6, -1.5):
+        _ , (theta1, theta2) = bajar_cadera(leg, desplazamiento_cadera)
+        if theta1 is None or theta2 is None:
+            raise Exception("Error while calculating inverse kinematics in loop_bajar_cadera")
+        if not setPosAngle(ser, leg, theta=(theta1, theta2)):
+            raise Exception("Error while setting position in loop_bajar_cadera")
+        await asyncio.sleep(1)
+        
+async def switch_state(queueAudio):
+    """
+    Checks if the queueAudio is not empty and if the incoming message is equal to MESSAGE_AUDIO.
+    
+    Parameters:
+    - ser: The serial object.
+    - leg: The leg object.
+    - queueAudio: The queue containing audio messages.
+    
+    Returns:
+    - True if the incoming message is equal to MESSAGE_AUDIO and the queueAudio is not empty.
+    - False otherwise.
+    """
+    if not queueAudio.empty():
+        incoming_message = await queueAudio.get()
+        if incoming_message == MESSAGE_AUDIO:
+            
+            return True
+    return False
+
+async def move_robot_with_imbalance(ser, queue):
+    """
+    Moves the robot with imbalance using the given serial connection and queue.
+
+    Parameters:
+    ser (Serial): The serial connection to the robot.
+    queue (tuple): A tuple containing two queues - queueWalk and queueAudio.
+
+    Returns:
+    None
+    """
+    if not isinstance(queue, tuple):
+        return 
+    queueWalk, queueAudio = queue
 
     leg = DERECHA
-    state = MotionState.INIT
-    
-    while True:
-        
-        #estado subir cadera
-        if state == MotionState.PASO0:
-            if not await setPosAngle(WALK[0], leg, calibrations):
-                raise Exception("Error while setting position, estado INIT")
-            
-            state = MotionState.PASO3  # Pasar al siguiente estado
-            
-        #estado devolver la rodilla de la otra pierna a la posición inicial
-        elif state == MotionState.PASO3:
-            
-            if leg == DERECHA:
-                other_leg = IZQUIERDA
-            elif leg == IZQUIERDA:
-                other_leg = DERECHA
-            
-            #volver a la posición inicial en la pierna contraria una vez que la otra pierna ya ha sido levantada
-            if not await setPosAngle(WALK[3], other_leg, calibrations):
-                raise Exception("Error while setting position, estado PASO4")
-            
-            state = MotionState.PASO1  # Pasar al siguiente estado
-        
-        #estado subir rodilla y cadera
-        elif state == MotionState.PASO1:
-            if not await setPosAngle(WALK[1], leg, calibrations):
-                raise Exception("Error while setting position, estado PASO1")
-            
-            state = MotionState.PASO2  # Pasar al siguiente estado
-        
-        #estado bajar cadera con rodilla subida
-        elif state == MotionState.PASO2:
-            if not await setPosAngle(WALK[2], leg, calibrations):
-                raise Exception("Error while setting position, estado PASO2")
-            
-            state = MotionState.PASO3  # Pasar al siguiente estado
+    state = MotionState.PASO0
 
+    while True:
+        #estado avanzar una pierna hacia delante
+        if state == MotionState.PASO0:
+            
+            #comprobar si hay un mensaje de audio en la cola para cambiar de estado
+            if await switch_state(queueAudio):
+                print("FIN WALK")
+                return
+
+            #bajar cadera
+            other_leg = switch_leg(leg)
+            await loop_bajar_cadera(ser, other_leg, release=True)
+            
+            #mover pierna hacia delante rapidamente
+            if not setPosAngle(ser, leg, theta=(WALK[0][0], WALK[0][1])):
+                raise Exception("Error while setting position")
+            
+            print("PASO0 establecido (bajar cadera y avanzar pierna contraria una pierna)")
+            await asyncio.sleep(0.5)
+            state = MotionState.PASO1  # Pasar al siguiente estado
+            
+        #estado avanzar pierna contraria hacia delante
+        elif state == MotionState.PASO1:
+            
+            #mover pierna contraria hacia delante rapidamente
+            if not setPosAngle(ser, other_leg, theta=(WALK[0][0], WALK[0][1])):
+                raise Exception("Error while setting position")
+            
+            print("PASO1 establecido (avanzar una pierna))")
+            await asyncio.sleep(0.5)   
+            state = MotionState.PASO2  # Pasar al siguiente estado
+
+        #levantar las dos patas 
+        elif state == MotionState.PASO2:
+            
+            #pasos para elevar las dos piernas a la vez 
+            if not await standup(ser):
+                raise Exception("Error while standup position")
+            
+            print("STANDUP establecido")
+            await asyncio.sleep(0.5)
+            leg = other_leg
+            state = MotionState.PASO0  # Pasar al siguiente estado
+            
         else:
             raise Exception("Invalid state")
-        
+
+async def sit(ser):
+    """
+    Moves the servo motor to a sitting position.
+
+    Args:
+        ser (Serial): The serial connection to the servo motor.
+
+    Returns:
+        bool: True if the sitting position is successfully set, False otherwise.
+    """
+    
+    for pos in COMANDOS_SIT:
+        if not setPos(ser, pos):
+            return False
         await asyncio.sleep(1)
+    return True
+
+
+async def standup(ser):
+    """
+    Moves the servo motor to different positions to make the robot stand up.
+
+    Args:
+        ser (Serial): The serial connection to the servo motor.
+
+    Returns:
+        bool: True if all positions are successfully set, False otherwise.
+    """
+    #    """
+    for pos in COMANDOS_STANDUP:
+        if not setPos(ser, pos):
+            return False
+        await asyncio.sleep(0.4)
+    return True
+
+async def rotate(ser,degrees):
+    """ROTATE
+    
+    FALTA HACER ENTERO
+    
+    Args:
+        degrees (int): degrees to rotate the robot
+    """
+    return True
+    
