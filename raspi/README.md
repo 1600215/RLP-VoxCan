@@ -5,7 +5,6 @@
 - **Estados del Robot**:
   - `CONNECT`: Conexión con el Arduino Nano.
   - `SET_INIT`: Configuración inicial de la posición del robot.
-  - `CALIBRATION`: Calibración de servos del robot.
   - `STANDBY`: Espera de comandos de voz.
   - `SIT`, `STANDUP`, `WALK`, `ROTATE`: Ejecuta las acciones correspondientes a los comandos de voz.
 
@@ -43,10 +42,6 @@
 
 - **Movimiento, funciones que realizan los estados de la máquina de estados del robot**: Implementación de las funcioes de WALK, SIT, 
 STANDUP, ROTATE.
-
-### Módulo Calibrate
-
-- **Calibración del robot**: Algoritmo que recorre una serie de angulos despalazados al original para intentar poner el robot lo más equilibrado posible.
 
 ### Módulo Web
 

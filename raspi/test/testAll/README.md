@@ -9,10 +9,10 @@ Caso de haber comando cambia de estado, sino sigue analizando archivos
 
 ### Test general
 
-Test en tiempo real, a partir de server.js, generar archivos que se analizarán por el bucle standby.
+Test en tiempo real, a partir de server.js, generar archivos que se analizarán por el bucle funcional del robot realizando cambios de estado.
 
 1. `node server/server.js` - Servidor
-2. `python test/testFuncionalities.py` - Bucle funcional robot 
+2. `python test/testLoop.py` - Bucle funcional robot 
 
 ### Tests unitarios
 
@@ -24,4 +24,4 @@ Test en tiempo real, a partir de server.js, generar archivos que se analizarán 
 Simula todo el bucle funcional con el movimiento implementado.
 
 1. `node server/server.js` - Servidor
-2. `python test/testAll.py` - Bucle funcional robot 
+2. `python test/testAll.py` - Bucle funcional robot, con movimiento
