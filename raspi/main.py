@@ -1,32 +1,26 @@
 import serial
 import time
-import json
-import math
 import mpu6050
 import sys
 import numpy as np
 import RPi.GPIO as GPIO
-from constants import State, Axis, LED_PIN_GREEN, LED_PIN_RED, LED_PIN_YELLOW, MPU6050_ADDR, AUDIO_FOLDER, INIT_IZQUIERDA_SUP, INIT_DERECHA_SUP, INIT_DERECHA_INF, INIT_IZQUIERDA_INF
+from constants import State, LED_PIN_GREEN, LED_PIN_RED, LED_PIN_YELLOW, MPU6050_ADDR, AUDIO_FOLDER
 from modules.arduino import connect
-from modules.arduino import setPos
 from modules.audio import process_files
-from modules.calibrate import calibrate_servos
-from modules.motion import calibrate_servo
 from modules.web import finish_command
-
-#para pruebas
-from test.testStandby.test.testStandby import sit, standup, rotate, walk
+from modules.motion import sit, standup, rotate, move_robot_with_imbalance
 import asyncio
-
 
 #--------------------------------------------------------------
 # Variables globales
-current_state = State.INITIALIZE
+current_state = State.CONNECT
 rotate_degrees = None
 standby_params = None
 calibration = {}
+
 ser = None
 mpu = None
+
 queueAudio = asyncio.Queue()
 queueWalk = asyncio.Queue()
     
@@ -132,71 +126,33 @@ async def main():
                 y se cambia al estado CALIBRATION.
                 """
                 #mandar comando setPos a arduino con posiciones de inicialización
-                if setPos(ser, mpu, {str(Axis.DERECHO_SUP): INIT_DERECHA_SUP, str(Axis.DERECHO_INF): INIT_DERECHA_INF, str(Axis.IZQUIERDO_SUP): INIT_IZQUIERDA_SUP, str(Axis.IZQUIERDO_INF): INIT_IZQUIERDA_INF}):
-                    print("Posición inicial establecida")
-                    
-                    #juego de luces de color YELLOW para indicar que se ha inicializado
-                    try:
-                        GPIO.output(LED_PIN_YELLOW, GPIO.LOW)
-                        await asyncio.sleep(0.5)
-                        GPIO.output(LED_PIN_YELLOW, GPIO.HIGH)
-                        await asyncio.sleep(0.5)
-                        GPIO.output(LED_PIN_YELLOW, GPIO.LOW)
-                        await asyncio.sleep(0.5)
-                        GPIO.output(LED_PIN_YELLOW, GPIO.HIGH)
-                        await asyncio.sleep(0.5)
-                        GPIO.output(LED_PIN_YELLOW, GPIO.LOW)
-                        await asyncio.sleep(0.5)
-                        GPIO.output(LED_PIN_YELLOW, GPIO.HIGH)
-                        
-                    #excepción para el control de los LEDS
-                    except Exception as e:
-                        raise Exception("Error al poner el pin GPIO del led amarillo en alto en el estado SET_INIT", e)
-                    
-                    #cambiar de estado a CALIBRATION
-                    current_state = State.CALIBRATION
-                    
-                #excpeción para comando setPos
-                else:
-                    raise Exception("Error al enviar los parámetros de la posición inicial")
                 
-            #-----------------------------------------------------------------------    
-            #Estado CALIBRATION      
-            elif current_state == State.CALIBRATION:
-                """
-                En el estado CALIBRATION, se calibra el servomotor utilizando el MPU6050.
-                Luego, se configuran los parámetros de calibración y se cambia al estado STANDBY.
-                """
-                #calibrar los servos,  devuelve posiciones optimas de desbalance
-                standby_params = calibrate_servos(ser, mpu)
-                if standby_params == None: 
-                    raise Exception("Error al calibrar los servos")
-
-                #posicionar el robot en esa configuración
-                set = setPos(ser, standby_params)
-                if not set:
-                    raise Exception("Error al enviar los parámetros de calibración, durante estado calibración")
+                if not await standup(ser):
+                    raise Exception("Error al enviar el comando de INIT-STANDUP al Arduino Nano")
                 
-                #configurar diccionario de calibración para poder relacionar cinematica directa/inversa con posiciones de los servos
-                calibration = calibrate_servo(Axis.DERECHO_SUP, 175, standby_params[Axis.DERECHO_SUP], calibration)
-                calibration = calibrate_servo(Axis.DERECHO_INF, 100, standby_params[Axis.DERECHO_INF], calibration)
-                calibration = calibrate_servo(Axis.IZQUIERDO_SUP, 175, standby_params[Axis.IZQUIERDO_SUP], calibration)
-                calibration = calibrate_servo(Axis.IZQUIERDO_INF, 100, standby_params[Axis.IZQUIERDO_INF], calibration)
-                
-                #try -> catch para poner GREEN en HIGH y YELLOW en LOW
+                print("INIT establecido")
+                #juego de luces de color YELLOW para indicar que se ha inicializado
                 try:
                     GPIO.output(LED_PIN_YELLOW, GPIO.LOW)
-                    GPIO.output(LED_PIN_GREEN, GPIO.HIGH)
-                
-                #excepción por el control de los LEDS
+                    await asyncio.sleep(0.5)
+                    GPIO.output(LED_PIN_YELLOW, GPIO.HIGH)
+                    await asyncio.sleep(0.5)
+                    GPIO.output(LED_PIN_YELLOW, GPIO.LOW)
+                    await asyncio.sleep(0.5)
+                    GPIO.output(LED_PIN_YELLOW, GPIO.HIGH)
+                    await asyncio.sleep(0.5)
+                    GPIO.output(LED_PIN_YELLOW, GPIO.LOW)
+                    await asyncio.sleep(0.5)
+                    GPIO.output(LED_PIN_YELLOW, GPIO.HIGH)
+                    
+                #excepción para el control de los LEDS
                 except Exception as e:
-                    raise Exception("Error al poner el pin GPIO del led verde en alto y el amarillo en bajo en el estado CALIBRATION", e)
+                    raise Exception("Error al poner el pin GPIO del led amarillo en alto en el estado SET_INIT", e)
                 
-                
-                #cambio de estado a estado STANDBY
+                #cambiar de estado a CALIBRATION
                 current_state = State.STANDBY
                 
-            #-----------------------------------------------------------------------    
+              
             #Estado STANDBY
             elif current_state == State.STANDBY:
                 
@@ -208,11 +164,8 @@ async def main():
                     print(f"Estado actual STANDBY, esperando nuevos comandos")
                     
                     # Llamar a process_files con la variable global current_state
-                    audio_task = asyncio.create_task(process_files( audio_folder=AUDIO_FOLDER, state=current_state))
+                    next_state = await process_files( audio_folder=AUDIO_FOLDER, state=current_state)
                     
-                    # Esperar a que la tarea de procesamiento de audio se complete
-                    next_state = await audio_task
-
                     #si devuevle un tupla -> estado siguiente ROTATE, inicializa variable rotate_degrees
                     #y también cambia de estado
                     if isinstance(next_state, tuple):
@@ -225,10 +178,9 @@ async def main():
                     else:
                         if next_state != current_state:
                             current_state = next_state
-                            print(f"Siguiente estado: {current_state}")
                             break
 
-                await asyncio.sleep(1)
+                    await asyncio.sleep(1)
                 
             #-----------------------------------------------------------------------    
             #Estado SIT
@@ -241,8 +193,8 @@ async def main():
                 
                 #realizar comando sit con una tarea
                 print("empezando estado SIT")
-                sit_task = asyncio.create_task(sit())
-                await sit_task
+                if not await sit(ser):
+                    raise Exception("Error al realizer el comando de SIT")
                 
                 #una vez terminado el comando SIT, comunicar que se finaliza el comando a los usarios de la web, sino se devuelve codigo 200 ERROR.
                 print("terminado SIT")
@@ -256,15 +208,11 @@ async def main():
                     print(f"Estado actual SIT, esperando nuevos comandos")
                     
                     #generar una tarea para analizar los archivos de AUDIO_FOLDER
-                    audio_task = asyncio.create_task(process_files( audio_folder=AUDIO_FOLDER, state=current_state))
-                
-                    # Esperar a que la tarea de procesamiento de audio se complete
-                    next_state = await audio_task
-                    
+                    next_state = await process_files( audio_folder=AUDIO_FOLDER, state=current_state)
+                                    
                     #en caso de cambiar de estado
                     if next_state != current_state:
                         current_state = next_state
-                        print("Siguiente estado: ", current_state)               
                         break
                     
                     await asyncio.sleep(1)
@@ -280,8 +228,8 @@ async def main():
                 
                 #realizar comando STANDUP con una tarea
                 print("empezando estado STANDUP")
-                sit_task = asyncio.create_task(standup())
-                await sit_task
+                if not await standup(ser):
+                    raise Exception("Error al realizer el comando de STANDUP")
                 
                 #una vez terminado el comando STANDUP, comunicar que se finaliza el comando a los usarios de la web, sino se devuelve codigo 200 ERROR.
                 print("terminado STANDUP")
@@ -295,10 +243,7 @@ async def main():
                     print(f"Estado actual STANDUP, esperando nuevos comandos")
                     
                     #generar una tarea para analizar los archivos de AUDIO_FOLDER
-                    audio_task = asyncio.create_task(process_files( audio_folder=AUDIO_FOLDER, state=current_state))
-                
-                    # Esperar a que la tarea de procesamiento de audio se complete
-                    next_state = await audio_task
+                    next_state = await process_files( audio_folder=AUDIO_FOLDER, state=current_state)
                     
                     #si devuevle un tupla -> estado siguiente ROTATE, inicializa variable rotate_degrees
                     #y también cambia de estado
@@ -312,7 +257,6 @@ async def main():
                     else:
                         if next_state != current_state:
                             current_state = next_state
-                            print(f"Siguiente estado: {current_state}")
                             break
 
                     await asyncio.sleep(1)
@@ -329,15 +273,14 @@ async def main():
                 """
 
                 #tarea paralela a la lectura de archivos para no parar de andar hasta recibir otro comando y/o chocarse
-                asyncio.create_task(walk(queue=(queueWalk, queueAudio)))
+                asyncio.create_task(move_robot_with_imbalance(ser, calibration, queue=(queueWalk, queueAudio)))
                     
                 while True: 
                     
                     print(f"Estado actual WALK, esperando nuevos comandos")
 
                     #tarea para analizar la carpeta AUDIO_FOLDER
-                    audio_task = asyncio.create_task(process_files(audio_folder=AUDIO_FOLDER, state=current_state, queue=(queueAudio, queueWalk)))
-                    next_state = await audio_task
+                    next_state = await process_files(audio_folder=AUDIO_FOLDER, state=current_state, queue=(queueAudio, queueWalk))
 
                     #si devuevle un tupla -> estado siguiente ROTATE, inicializa variable rotate_degrees
                     #y también cambia de estado
@@ -351,7 +294,6 @@ async def main():
                     else:
                         if next_state != current_state:
                             current_state = next_state
-                            print(f"Siguiente estado: {current_state}")
                             break
 
                     await asyncio.sleep(1)
@@ -365,8 +307,8 @@ async def main():
                 """
                 #realizar comando ROTATE
                 print("empezando estado ROTATE")
-                rotate_task = asyncio.create_task(rotate(rotate_degrees))
-                await rotate_task
+                if not await rotate(ser, rotate_degrees):
+                    raise Exception("Error al realizar el comando de ROTATE")
                 
                 #indicar a los usuarios de la web que se ha terminado el comando ROTATE
                 print("terminado ROTATE")
@@ -378,15 +320,11 @@ async def main():
                     print(f"Estado actual SIT, esperando nuevos comandos")
                     
                     #generar una tarea para analizar los archivos de AUDIO_FOLDER
-                    audio_task = asyncio.create_task(process_files( audio_folder=AUDIO_FOLDER, state=current_state))
-                
-                    # Esperar a que la tarea de procesamiento de audio se complete
-                    next_state = await audio_task
-                    
+                    next_state = await process_files( audio_folder=AUDIO_FOLDER, state=current_state)
+
                     #en caso de cambiar de estado
                     if next_state != current_state:
                         current_state = next_state
-                        print("Siguiente estado: ", current_state)               
                         break
                                         
                     await asyncio.sleep(1)
