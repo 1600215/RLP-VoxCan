@@ -246,11 +246,8 @@ async def loop_bajar_cadera(ser, leg, release=False):
         _ , (theta1, theta2) = bajar_cadera(leg, -4)        
         if not setPosAngle(ser, leg, theta=(theta1, theta2)):
                 raise Exception("Error while setting position in loop_bajar_cadera")
-        await asyncio.sleep(0.2)
-        _ , (theta1, theta2) = bajar_cadera(leg, -6)
-        if not setPosAngle(ser, leg, theta=(theta1, theta2)):
-                raise Exception("Error while setting position in loop_bajar_cadera")
         await asyncio.sleep(0.5)
+
         return
         
 
@@ -324,6 +321,10 @@ async def move_robot_with_imbalance(ser, queue):
         #estado avanzar pierna contraria hacia delante
         elif state == MotionState.PASO1:
             
+            if not setPosAngle(ser, other_leg, theta=(WALK[1][0], WALK[1][1])):
+                raise Exception("Error while setting position")            
+            
+            await asyncio.sleep(0.5)
             #mover pierna contraria hacia delante rapidamente
             if not setPosAngle(ser, other_leg, theta=(WALK[0][0], WALK[0][1])):
                 raise Exception("Error while setting position")
