@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from constants import Axis, L1, L2, DERECHA, IZQUIERDA, WALK, MotionState, COMANDOS_STANDUP, MESSAGE_AUDIO, INIT, COMANDOS_SIT, CALIBRATIONS, ALL, TIME_SLEEP, MESSAGE_WALK
 from modules.arduino import setPos
-#from modules.distance import distance
+from modules.distance import distance
 
 
 
@@ -302,12 +302,10 @@ async def move_robot_with_imbalance(ser, queue, degrees=0):
     leg = DERECHA
     state = MotionState.PASO0
 
-    count = 0
     if not setPos(ser, {str(Axis.DELANTERO) : map_angle_to_servo(Axis.DELANTERO, degrees)}):
         raise Exception("Error while setting position")
 
     while True:
-        count = count + 1
         #estado avanzar una pierna hacia delante
         if state == MotionState.PASO0:
             
@@ -316,7 +314,7 @@ async def move_robot_with_imbalance(ser, queue, degrees=0):
                 print("FIN WALK")
                 return
 
-            if count > 3:
+            if distance() > 3:
                 print("ROTATE 180")
                 await rotate_180(ser)
                 await queueWalk.put(MESSAGE_WALK)
@@ -446,10 +444,10 @@ async def rotate_180(ser):
             
             leg = other_leg
             state = MotionState.PASO0  # Pasar al siguiente estado
+            count = count + 1
 
         else:
             raise Exception("Invalid state")
-        count = count + 1
 
 async def sit(ser):
     """
