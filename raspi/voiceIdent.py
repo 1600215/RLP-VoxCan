@@ -293,8 +293,19 @@ def predict(algorithm='windowing', dataType='ruido', model='svm', filter=False, 
         if model != 'rf':
             return -1
         
+<<<<<<< Updated upstream
         m = joblib.load(f'./modelos/{dataType}/{algorithm}/modelos/{model}_{algorithm}_filter_{str(filter)}.pkl')
         scaler = joblib.load(f'./modelos/{dataType}/{algorithm}/scalers/scaler_{algorithm}_filter_{str(filter)}.pkl')
+=======
+        t0 = time.time()
+        
+        absolutePath = get_absolute_path()
+        
+        m = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/ModeloWindowing.joblib')
+        scaler = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/StandardScaler.pkl')
+        #m = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/modelos/{model}_{algorithm}_filter_{str(filter)}_comprimido.joblib')
+        #scaler = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/scalers/scaler_{algorithm}_filter_{str(filter)}.pkl')
+>>>>>>> Stashed changes
         
         y, sr = librosa.load(audio)
         
