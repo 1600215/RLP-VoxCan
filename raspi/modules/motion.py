@@ -369,9 +369,6 @@ async def rotate_90_degrees(ser):
     Returns:
     None
     """
-    if not isinstance(queue, tuple):
-        return 
-    queueGiro, queueAudio = queue
 
     leg = DERECHA
     state = MotionState.PASO0
