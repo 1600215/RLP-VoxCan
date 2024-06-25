@@ -3,7 +3,7 @@
 ## Que es esto?
 VoxCan es un proyecto diseñado para la asignatura de Robótica en la Escuela de Ingeniería de la Universitat Autònoma de Barcelona (curso 2023-2024). Este proyecto tiene como objetivo crear un robot tipo perro con capacidades de movilidad, reconocimiento de voz, reconocimiento de objetos y comportamientos caninos realistas.
 
-## Requirements
+## Requerimientos
 Estas bibliotecas son utilizadas para la manipulación y el análisis de archivos de audio.
 - `audioread==3.0.1`
 - `librosa==0.10.2.post1`
@@ -65,7 +65,7 @@ Para instalar todas las dependencias, ejecuta el siguiente comando:
 pip install -r requirements.txt
 ~~~
 
-## Documentation
+## Documentación
 Este README muestra los elementos detallados del proyecto llevado a cabo.
 
 Cómo usar
