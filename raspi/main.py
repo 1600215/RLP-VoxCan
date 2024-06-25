@@ -45,12 +45,6 @@ try:
 except serial.SerialException as se:
     raise Exception("Error al inicializar el puerto serie", se)
 
-try:
-    # Inicialización del MPU6050
-    mpu = mpu6050.mpu6050(MPU6050_ADDR)
-except Exception as e:
-    raise Exception("Error al inicializar el MPU6050", e)
-
 #--------------------------------------------------------------
 # Función principal main VoxCan
 async def main():
