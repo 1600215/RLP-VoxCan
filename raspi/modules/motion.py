@@ -4,7 +4,7 @@ import asyncio, time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from constants import Axis, L1, L2, DERECHA, IZQUIERDA, WALK, MotionState, COMANDOS_STANDUP, MESSAGE_AUDIO, INIT, COMANDOS_SIT, CALIBRATIONS, ALL
+from constants import Axis, L1, L2, DERECHA, IZQUIERDA, WALK, MotionState, COMANDOS_STANDUP, MESSAGE_AUDIO, INIT, COMANDOS_SIT, CALIBRATIONS, ALL, TIME_SLEEP
 from modules.arduino import setPos
 
 # Función de mapeo de ángulos
@@ -246,8 +246,10 @@ async def loop_bajar_cadera(ser, leg, release=False):
         _ , (theta1, theta2) = bajar_cadera(leg, -4)        
         if not setPosAngle(ser, leg, theta=(theta1, theta2)):
                 raise Exception("Error while setting position in loop_bajar_cadera")
-        await asyncio.sleep(0.5)
-
+        await asyncio.sleep(0.2)
+        _ , (theta1, theta2) = bajar_cadera(leg, -6)        
+        if not setPosAngle(ser, leg, theta=(theta1, theta2)):
+                raise Exception("Error while setting position in loop_bajar_cadera")
         return
         
 
@@ -310,12 +312,16 @@ async def move_robot_with_imbalance(ser, queue):
             other_leg = switch_leg(leg)
             await loop_bajar_cadera(ser, other_leg, release=True)
             
+            await asyncio.sleep(TIME_SLEEP)
+
             #mover pierna hacia delante rapidamente
             if not setPosAngle(ser, leg, theta=(WALK[0][0], WALK[0][1])):
                 raise Exception("Error while setting position")
             
             print("PASO0 establecido (bajar cadera y avanzar pierna contraria una pierna)")
-            await asyncio.sleep(0.5)
+            
+            await asyncio.sleep(TIME_SLEEP)
+            
             state = MotionState.PASO1  # Pasar al siguiente estado
             
         #estado avanzar pierna contraria hacia delante
@@ -324,13 +330,15 @@ async def move_robot_with_imbalance(ser, queue):
             if not setPosAngle(ser, other_leg, theta=(WALK[1][0], WALK[1][1])):
                 raise Exception("Error while setting position")            
             
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(TIME_SLEEP)
             #mover pierna contraria hacia delante rapidamente
             if not setPosAngle(ser, other_leg, theta=(WALK[0][0], WALK[0][1])):
                 raise Exception("Error while setting position")
             
             print("PASO1 establecido (avanzar una pierna))")
-            await asyncio.sleep(0.5)   
+            
+            await asyncio.sleep(TIME_SLEEP)
+            
             state = MotionState.PASO2  # Pasar al siguiente estado
 
         #levantar las dos patas 
@@ -341,10 +349,12 @@ async def move_robot_with_imbalance(ser, queue):
                 raise Exception("Error while standup position")
             
             print("STANDUP establecido")
-            await asyncio.sleep(0.5)
+            
+            await asyncio.sleep(TIME_SLEEP)
+            
             leg = other_leg
             state = MotionState.PASO0  # Pasar al siguiente estado
-            
+
         else:
             raise Exception("Invalid state")
 
