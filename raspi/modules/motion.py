@@ -348,6 +348,70 @@ async def move_robot_with_imbalance(ser, queue):
         else:
             raise Exception("Invalid state")
 
+async def rotate_90_degrees(ser):
+    """
+    Moves the robot 90 degrees to the right using the given serial connection and queue.
+
+    Parameters:
+    ser (Serial): The serial connection to the robot.
+    queue (tuple): A tuple containing two queues - queueGiro and queueAudio.
+
+    Returns:
+    None
+    """
+    if not isinstance(queue, tuple):
+        return 
+    queueGiro, queueAudio = queue
+
+    leg = DERECHA
+    state = MotionState.PASO0
+    tiempo = time.time
+
+    while True:
+        #estado avanzar una pierna hacia delante
+
+        if state == MotionState.PASO0:
+
+            other_leg = switch_leg(leg)
+            await loop_bajar_cadera(ser, other_leg, release=True)
+
+            print(f"PASO 0 establecido (bajar cadera)")
+            await asyncio.sleep(1)
+            state = MotionState.PASO1
+
+        if state == MotionState.PASO1:            
+            print("GIRO 90")
+
+            #mover pierna hacia delante rapidamente
+            if not setPosAngle(ser, leg, theta=(WALK[0][0], WALK[0][1])):
+                raise Exception("Error while setting position")
+            #mover pierna hacia delante rapidamente
+            if not setPosAngle(ser, leg, theta=(WALK[1][0], WALK[1][1])):
+                raise Exception("Error while setting position")
+
+            print(f"PASO 1 establecido (avanzar pierna contraria una pierna)")
+            await asyncio.sleep(1)
+
+            time_step1 = time.time
+
+            # Pasar al siguiente estado
+            if (time - time_step1 > 20):
+                state = MotionState.PASO2
+
+        #levantar las dos patas 
+        elif state == MotionState.PASO2:
+            
+            #pasos para elevar las dos piernas a la vez 
+            if not await standup(ser):
+                raise Exception("Error while standup position")
+            
+            print("STANDUP establecido")
+            await asyncio.sleep(0.5)
+            return             
+        else:
+            raise Exception("Invalid state")
+
+
 async def sit(ser):
     """
     Moves the servo motor to a sitting position.
