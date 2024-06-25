@@ -1,10 +1,9 @@
 import serial
 import time
-import mpu6050
 import sys
 import numpy as np
 import RPi.GPIO as GPIO
-from constants import State, LED_PIN_GREEN, LED_PIN_RED, LED_PIN_YELLOW, MPU6050_ADDR, AUDIO_FOLDER
+from constants import State, LED_PIN_GREEN, LED_PIN_RED, LED_PIN_YELLOW, AUDIO_FOLDER, TRIG, ECHO
 from modules.arduino import connect
 from modules.audio import process_files
 from modules.web import finish_command
@@ -44,6 +43,13 @@ try:
     ser = serial.Serial(port='/dev/ttyUSB0', baudrate=9600, timeout=1)
 except serial.SerialException as se:
     raise Exception("Error al inicializar el puerto serie", se)
+
+try: 
+    GPIO.setup(TRIG, GPIO.OUT)
+    GPIO.setup(ECHO, GPIO.IN)
+
+except  Exception as e:
+    raise Exception("Error al inicializar los pines GPIO del sensor de ultrasonido", e)
 
 #--------------------------------------------------------------
 # Función principal main VoxCan
@@ -153,7 +159,10 @@ async def main():
                 """
                 En el estado STANDBY, el sistema espera nuevos comandos
                 """   
-                             
+                if not await rotate(ser, 0):
+                    raise Exception("Error al realizar el comando de ROTATE")
+                await asyncio.sleep(1)
+                        
                 while True: 
                     print(f"Estado actual STANDBY, esperando nuevos comandos")
                     
