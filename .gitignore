@@ -5,6 +5,7 @@ raspi/test/testAll/node_modules/
 
 .DS_Store
 .vscode/
+venvRLP/
 .conda/
 webServer/.DS_Store
 
@@ -12,7 +13,7 @@ raspi/__pycache__/
 raspi/modelos/__pycache__/
 raspi/modules/__pycache__/
 
-
+webServer/package-lock.json
 webServer/pnpm-lock.yaml
 raspi/test/testAll/pnpm-lock.yaml
 
