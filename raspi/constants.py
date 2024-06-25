@@ -72,13 +72,13 @@ COMANDOS_STANDUP = [{
     },{
         str(Axis.DERECHO_INF): 30,
         str(Axis.IZQUIERDO_INF): 150
-    
     },{
         str(Axis.DERECHO_SUP): 45,
         str(Axis.IZQUIERDO_SUP): 145
     },{
         str(Axis.DERECHO_INF): 50,
         str(Axis.IZQUIERDO_INF): 130
+    
     }
 ]
 
@@ -115,3 +115,6 @@ CALIBRATIONS = {
 DERECHA = 0
 IZQUIERDA = 1
 ALL = 2
+
+
+TIME_SLEEP = 0.7
