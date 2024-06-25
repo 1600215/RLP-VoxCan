@@ -109,6 +109,10 @@ CALIBRATIONS = {
     Axis.DERECHO_INF: {
         'joint_angle_ref': 95,
         'servo_angle_ref': 50,
+    },
+    Axis.DELANTERO: {
+        'joint_angle_ref': 0,
+        'servo_angle_ref': 84,
     }
 }
 
@@ -118,3 +122,6 @@ ALL = 2
 
 
 TIME_SLEEP = 0.7
+
+TRIG = 23
+ECHO = 25
