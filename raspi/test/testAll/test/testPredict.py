@@ -19,11 +19,11 @@ def convertName(name):
     int: The numerical value corresponding to the given name.
     """
     if name == 'Adria':
-        return 3
+        return 2
     elif name == 'Albert':
         return 1
     elif name == 'Raul':
-        return 2
+        return 3
     elif name == 'Gerard':
         return 0
     else:
@@ -39,7 +39,7 @@ def convertNameString(name):
     elif name == 3:
         return "Adria"
     else:
-        return "Unknown"
+        return "Otro"
 def testPredict():
     """
     Test the predict function on a list of audio files.
