@@ -4,8 +4,12 @@ import asyncio, time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from constants import Axis, L1, L2, DERECHA, IZQUIERDA, WALK, MotionState, COMANDOS_STANDUP, MESSAGE_AUDIO, INIT, COMANDOS_SIT, CALIBRATIONS, ALL, TIME_SLEEP
+from constants import Axis, L1, L2, DERECHA, IZQUIERDA, WALK, MotionState, COMANDOS_STANDUP, MESSAGE_AUDIO, INIT, COMANDOS_SIT, CALIBRATIONS, ALL, TIME_SLEEP, MESSAGE_WALK
 from modules.arduino import setPos
+#from modules.distance import distance
+
+
+
 
 # Función de mapeo de ángulos
 def map_angle_to_servo(servo_name, joint_angle):
@@ -33,7 +37,8 @@ def map_angle_to_servo(servo_name, joint_angle):
         servo_angle = (joint_angle - calib['joint_angle_ref']) + calib['servo_angle_ref']
     elif Axis.DERECHO_INF == servo_name:
         servo_angle = (calib['joint_angle_ref'] - joint_angle) + calib['servo_angle_ref']
-
+    elif Axis.DELANTERO == servo_name:
+        servo_angle = (joint_angle - calib['joint_angle_ref']) + calib['servo_angle_ref']
     else:
         return None
     
@@ -95,7 +100,6 @@ def cinematica_directa(theta1, theta2):
     y_pie = y_rodilla + L2 * np.sin(np.radians(theta1 + theta2))
     
     return (x_rodilla, y_rodilla), (x_pie, y_pie)
-
 def cinematica_inversa(x_pie, y_pie, y_hip_new):
     """
     Calculates the inverse kinematics for a robotic leg.
@@ -276,12 +280,11 @@ async def switch_state(queueAudio):
     """
     if not queueAudio.empty():
         incoming_message = await queueAudio.get()
-        if incoming_message == MESSAGE_AUDIO:
-            
+        if incoming_message == MESSAGE_AUDIO:   
             return True
     return False
 
-async def move_robot_with_imbalance(ser, queue):
+async def move_robot_with_imbalance(ser, queue, degrees=0):
     """
     Moves the robot with imbalance using the given serial connection and queue.
 
@@ -299,12 +302,24 @@ async def move_robot_with_imbalance(ser, queue):
     leg = DERECHA
     state = MotionState.PASO0
 
+    count = 0
+    if not setPos(ser, {str(Axis.DELANTERO) : map_angle_to_servo(Axis.DELANTERO, degrees)}):
+        raise Exception("Error while setting position")
+
     while True:
+        count = count + 1
         #estado avanzar una pierna hacia delante
         if state == MotionState.PASO0:
             
             #comprobar si hay un mensaje de audio en la cola para cambiar de estado
             if await switch_state(queueAudio):
+                print("FIN WALK")
+                return
+
+            if count > 3:
+                print("ROTATE 180")
+                await rotate_180(ser)
+                await queueWalk.put(MESSAGE_WALK)
                 print("FIN WALK")
                 return
 
@@ -358,7 +373,7 @@ async def move_robot_with_imbalance(ser, queue):
         else:
             raise Exception("Invalid state")
 
-async def rotate_90_degrees(ser):
+async def rotate_180(ser):
     """
     Moves the robot 90 degrees to the right using the given serial connection and queue.
 
@@ -372,38 +387,51 @@ async def rotate_90_degrees(ser):
 
     leg = DERECHA
     state = MotionState.PASO0
-    tiempo = time.time
 
+    if not setPos(ser, {str(Axis.DELANTERO) : map_angle_to_servo(Axis.DELANTERO, -75)}):
+        raise Exception("Error while setting position")
+
+    print("ROTATE 180")
+    await asyncio.sleep(1)
+    count = 0
     while True:
         #estado avanzar una pierna hacia delante
-
         if state == MotionState.PASO0:
-
+            
+            if count > 6:
+                return
+            #bajar cadera
             other_leg = switch_leg(leg)
             await loop_bajar_cadera(ser, other_leg, release=True)
-
-            print(f"PASO 0 establecido (bajar cadera)")
-            await asyncio.sleep(1)
-            state = MotionState.PASO1
-
-        if state == MotionState.PASO1:            
-            print("GIRO 90")
+            
+            await asyncio.sleep(TIME_SLEEP)
 
             #mover pierna hacia delante rapidamente
             if not setPosAngle(ser, leg, theta=(WALK[0][0], WALK[0][1])):
                 raise Exception("Error while setting position")
-            #mover pierna hacia delante rapidamente
-            if not setPosAngle(ser, leg, theta=(WALK[1][0], WALK[1][1])):
+            
+            print("PASO0 establecido (bajar cadera y avanzar pierna contraria una pierna)")
+            
+            await asyncio.sleep(TIME_SLEEP)
+            
+            state = MotionState.PASO1  # Pasar al siguiente estado
+            
+        #estado avanzar pierna contraria hacia delante
+        elif state == MotionState.PASO1:
+            
+            if not setPosAngle(ser, other_leg, theta=(WALK[1][0], WALK[1][1])):
+                raise Exception("Error while setting position")            
+            
+            await asyncio.sleep(TIME_SLEEP)
+            #mover pierna contraria hacia delante rapidamente
+            if not setPosAngle(ser, other_leg, theta=(WALK[0][0], WALK[0][1])):
                 raise Exception("Error while setting position")
-
-            print(f"PASO 1 establecido (avanzar pierna contraria una pierna)")
-            await asyncio.sleep(1)
-
-            time_step1 = time.time
-
-            # Pasar al siguiente estado
-            if (time - time_step1 > 20):
-                state = MotionState.PASO2
+            
+            print("PASO1 establecido (avanzar una pierna))")
+            
+            await asyncio.sleep(TIME_SLEEP)
+            
+            state = MotionState.PASO2  # Pasar al siguiente estado
 
         #levantar las dos patas 
         elif state == MotionState.PASO2:
@@ -413,11 +441,15 @@ async def rotate_90_degrees(ser):
                 raise Exception("Error while standup position")
             
             print("STANDUP establecido")
-            await asyncio.sleep(0.5)
-            return             
+            
+            await asyncio.sleep(TIME_SLEEP)
+            
+            leg = other_leg
+            state = MotionState.PASO0  # Pasar al siguiente estado
+
         else:
             raise Exception("Invalid state")
-
+        count = count + 1
 
 async def sit(ser):
     """
@@ -455,12 +487,9 @@ async def standup(ser):
     return True
 
 async def rotate(ser,degrees):
-    """ROTATE
-    
-    FALTA HACER ENTERO
-    
-    Args:
-        degrees (int): degrees to rotate the robot
-    """
+
+    if not setPos(ser, {str(Axis.DELANTERO) : degrees}):
+        raise Exception("Error while setting position")
+        
     return True
     
