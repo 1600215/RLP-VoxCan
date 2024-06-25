@@ -1,0 +1,37 @@
+@startuml
+
+actor Cliente
+participant Servidor
+participant Robot
+
+
+loop
+Cliente -> Cliente: startRecording()
+Cliente -> Cliente: loop\n[Grabación de audio]
+Cliente -> Cliente: handleDataAvailable(event)
+Cliente -> Cliente: handleStop()
+Cliente -> Servidor: POST /upload(audio, token)
+Servidor -> Servidor: Guardar audio en carpeta\n de uploads con token
+Servidor --> Cliente: 200 OK /upload
+
+loop
+    Robot -> Robot: Comprueba carpeta
+    Robot -> Robot: Analiza archivo, cambia de estado en caso possible
+end
+
+alt estado diferente
+    Robot -> Servidor: POST /set_command
+    Servidor -> Cliente: emit command-accepted (socket.io)
+    Cliente -> Cliente: actualizar pagina en función de token y de comando
+end
+
+alt comanda != WALK
+    Robot -> Robot: realizar comando
+    Robot -> Servidor: POST /finish-command
+    Servidor -> Cliente: emit finish-command actualiza pagina en función del token
+
+end
+
+Robot -> Robot: limpiar carpeta
+end
+@enduml

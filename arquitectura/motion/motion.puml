@@ -1,0 +1,32 @@
+@startuml
+[*] --> PASO0
+
+PASO0 : Inicializar posición de pierna ACTUAL
+PASO0 : Levantar pierna ACTUAL
+PASO0 --> PASO3 : Esperar 1.5 segundos
+
+PASO0 --> COLLISION : Si esta a menos 30cm de obstaculo
+COLLISION : levantar pierna ACTUAL
+COLLISION : devolver pierna CONTRARIA pos INCIAL
+COLLISION : bajar pierna ACTUAL
+COLLISION --> [*]
+
+PASO0 --> SWITCH_STATE : Si se solicita cambio de estado
+SWITCH_STATE : levantar pierna ACTUAL
+SWITCH_STATE : devolver pierna CONTRARIA pos INCIAL
+SWITCH_STATE : bajar pierna ACTUAL
+SWITCH_STATE --> [*]
+
+PASO3 : Volver a posición inicial pierna CONTRARIA
+PASO3 : Iniciar tarea de bajar cadera pierna CONTRARIA
+PASO3 --> PASO1 : Esperar 1.5 segundos
+
+PASO1 : Subir rodilla y cadera pierna ACTUAL
+PASO1 --> PASO2 : Esperar 1.5 segundo
+
+PASO2 : Bajar cadera con rodilla subida pierna ACTUAL
+PASO2 : Esperar tarea bajar cadera pierna CONTRARIA
+PASO2 : cambiar de pierna
+PASO2 --> PASO0 : Esperar 1.5 segundo
+
+@enduml

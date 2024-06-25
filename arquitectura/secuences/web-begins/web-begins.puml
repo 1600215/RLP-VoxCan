@@ -1,0 +1,28 @@
+@startuml
+actor Cliente
+participant "Página web" as PaginaWeb
+participant Servidor
+
+Cliente -> PaginaWeb: Cargar página (DOMContentLoaded)
+PaginaWeb -> PaginaWeb: Verificar token en localStorage
+alt [Token no existe en localStorage]
+    PaginaWeb -> PaginaWeb: Generar nuevo token
+    PaginaWeb -> PaginaWeb: Guardar token en localStorage
+    PaginaWeb -> Servidor: Emitir evento "submit-token" con nuevo token
+    Servidor -> PaginaWeb: Evento "token-accepted"
+else [Token existe en localStorage]
+    PaginaWeb -> Servidor: Emitir evento "check-token" con token existente
+    Servidor -> PaginaWeb: Evento "token-exists"
+    alt [Token no válido (token-exists false)]
+        PaginaWeb -> PaginaWeb: Generar nuevo token
+        PaginaWeb -> PaginaWeb: Guardar token en localStorage
+        PaginaWeb -> Servidor: Emitir evento "submit-token" con nuevo token
+        Servidor -> PaginaWeb: Evento "token-accepted"
+    else [Token válido (token-exists true)]
+        PaginaWeb -> Servidor: Evento "check-command" para comprobar estado del robot
+        Servidor -> PaginaWeb: Evento "is-command" para conocer estado robot
+    end
+end
+
+PaginaWeb -> PaginaWeb: Carga interfaz web
+@enduml

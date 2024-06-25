@@ -3,7 +3,10 @@ import librosa
 import joblib
 import os
 import argparse
+import time
 
+
+from modelos.absolutePath import get_absolute_path
 
 
 def removeSilence(audio, silence_threshold = 0.05):
@@ -267,7 +270,7 @@ def extract_features(y, sr):
     return features
 
 
-def predict(algorithm='windowing', dataType='ruido', model='svm', filter=False, audio='aux.mp3'):
+def predict(algorithm='windowing', dataType='ruido', model='rf', filter=False, audio='aux.mp3'):
     """
     Predicts the output based on the given parameters.
 
@@ -289,12 +292,20 @@ def predict(algorithm='windowing', dataType='ruido', model='svm', filter=False, 
     if not os.path.exists(audio):
         return -1
     
+    
+    
+    
     if algorithm == 'windowing':
         if model != 'rf':
             return -1
         
-        m = joblib.load(f'./modelos/{dataType}/{algorithm}/modelos/{model}_{algorithm}_filter_{str(filter)}.pkl')
-        scaler = joblib.load(f'./modelos/{dataType}/{algorithm}/scalers/scaler_{algorithm}_filter_{str(filter)}.pkl')
+        t0 = time.time()
+        
+        absolutePath = get_absolute_path()
+        
+        
+        m = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/modelos/{model}_{algorithm}_filter_{str(filter)}_comprimido.joblib')
+        scaler = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/scalers/scaler_{algorithm}_filter_{str(filter)}.pkl')
         
         y, sr = librosa.load(audio)
         
@@ -311,19 +322,24 @@ def predict(algorithm='windowing', dataType='ruido', model='svm', filter=False, 
         X = scaler.transform(X)
         y_pred = m.predict(X)
         y_pred = np.array(y_pred)
-        return y_pred, np.bincount(y_pred).argmax()
+        
+        t1 = time.time() - t0
+        
+        return np.bincount(y_pred).argmax(), t1
     
     if algorithm == 'specsModel':
+        
+        t0 = time.time()
         if filter and dataType == 'ruidoNorm':
             return -1
         if model != 'cnn':
             return -1
         
-        model = joblib.load(f'./modelos/{dataType}/{algorithm}/modelos/cnn_{algorithm}_filter_{str(filter)}.pkl')
+        model = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/modelos/cnn_{algorithm}_filter_{str(filter)}.pkl')
         y, sr = librosa.load(audio)
         
         if dataType == 'ruidoNorm':
-            average_rms = joblib.load(f'./modelos/{dataType}/average_rms.pkl')
+            average_rms = joblib.load(f'{absolutePath}/{dataType}/average_rms.pkl')
             y = normalize_audio(y, average_rms)
             y = apply_compression(y)
         
@@ -337,18 +353,21 @@ def predict(algorithm='windowing', dataType='ruido', model='svm', filter=False, 
         test = np.zeros((size, image.shape[0], image.shape[1]))
         test[0] = image
         y_pred = model.predict(test)
-        return y_pred[0]
+        t1 = time.time() - t0
+        return y_pred[0], t1
     
     if algorithm == 'featureModel':
+        
+        t0 = time.time() 
         if model not in ['svc', 'lr', 'rf']:
             return -1
         
-        model = joblib.load(f'./modelos/{dataType}/{algorithm}/modelos/{model}_{algorithm}_filter_{str(filter)}.pkl')
-        scaler = joblib.load(f'./modelos/{dataType}/{algorithm}/scalers/scaler_{algorithm}_filter_{str(filter)}.pkl')
+        model = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/modelos/{model}_{algorithm}_filter_{str(filter)}.pkl')
+        scaler = joblib.load(f'{absolutePath}/{dataType}/{algorithm}/scalers/scaler_{algorithm}_filter_{str(filter)}.pkl')
         y, sr = librosa.load(audio)
         
         if dataType == 'ruidoNorm':
-            average_rms = joblib.load(f'./modelos/{dataType}/average_rms.pkl')
+            average_rms = joblib.load(f'{absolutePath}/{dataType}/average_rms.pkl')
             y = normalize_audio(y, average_rms)
             y = apply_compression(y)
         
@@ -358,11 +377,13 @@ def predict(algorithm='windowing', dataType='ruido', model='svm', filter=False, 
         features = np.array(features).reshape(1, -1)
         features = scaler.transform(features)
         y_pred = model.predict(features)
-        return y_pred[0]
-    
+        
+        t1 = time.time() - t0
+        return y_pred[0], t1
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Predict output from audio file.')
+    
     parser.add_argument('--algorithm', type=str, default='windowing', help='Algorithm to use for prediction (default: windowing)')
     parser.add_argument('--dataType', type=str, default='ruido', help='Type of data to use for prediction (default: ruido)')
     parser.add_argument('--model', type=str, default='svm', help='Model to use for prediction (default: svm)')
@@ -370,5 +391,5 @@ if __name__ == '__main__':
     parser.add_argument('--audio', type=str, default='aux.mp3', help='Path to the audio file (default: aux.mp3)')
     args = parser.parse_args()
 
-    result = predict(algorithm=args.algorithm, dataType=args.dataType, model=args.model, filter=args.filter, audio=args.audio)
-    print(f'Prediction result: {result}')
+    result, t = predict(algorithm=args.algorithm, dataType=args.dataType, model=args.model, filter=args.filter, audio=args.audio)
+    print(f'Prediction result: {result} in time {t}s')

@@ -1,0 +1,44 @@
+@startuml
+actor Usuario
+participant "Modulo Audio" as MA
+participant "AudioSegment" as AS
+participant "Predict" as P
+participant "SpeechRecognition" as SR
+participant "WebModule" as WM
+participant "MainLoop" as ML
+
+Usuario -> MA: Detecta nuevo archivo WAV
+MA -> AS: Convierte archivo a formato WAV (si es necesario)
+MA -> P: Predice identidad de la persona en el audio
+P --> MA: Devuelve identidad y tiempo
+MA -> SR: Reconoce texto usando Google Speech Recognition
+SR --> MA: Devuelve texto reconocido
+MA -> MA: Consulta estado actual
+
+alt Estado: STANDBY
+    MA -> WM: Indica procesamiento en estado STANDBY
+    WM -> WM: cambia interfaz de usuario
+    WM --> MA: Confirmación
+else Estado: WALK
+    MA -> WM: Indica procesamiento en estado WALK
+    WM -> WM: cambia interfaz de usuario
+    WM --> MA: Confirmación
+else Estado: SIT
+    MA -> WM: Indica procesamiento en estado SIT
+    WM -> WM: cambia interfaz de usuario
+    WM --> MA: Confirmación
+else Estado: STANDUP
+    MA -> WM: Indica procesamiento en estado STANDUP
+    WM -> WM: cambia interfaz de usuario
+    WM --> MA: Confirmación
+else Estado: ROTATE
+    MA -> WM: Indica procesamiento en estado ROTATE
+    WM -> WM: cambia interfaz de usuario
+    WM --> MA: Confirmación
+end
+
+MA -> MA: Elimina archivo de audio procesado
+MA -> ML: Trnasiciona al nuevo estado 
+
+note over ML: Bucle principal\n actualiza estado del robot
+@enduml
