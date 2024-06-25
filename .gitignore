@@ -1,4 +1,4 @@
-#raspi/test/testAll
+raspi/test/testAll
 
 webServer/node_modules/
 raspi/test/testAll/node_modules/
