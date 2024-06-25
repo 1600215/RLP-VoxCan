@@ -101,7 +101,10 @@ async def main():
                 """
                 En el estado STANDBY, el sistema espera nuevos comandos
                 """   
-                             
+                
+                if not await rotate(ser, 0):
+                    raise Exception("Error al enviar el comando de rotación al Arduino Nano")
+                
                 while True: 
                     print(f"Estado actual STANDBY, esperando nuevos comandos")
                     
