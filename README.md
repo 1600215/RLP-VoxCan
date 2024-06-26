@@ -98,6 +98,8 @@ Junto a ello, se ha montado un algoritmo de reconocimiento por voz para que el p
 
 Baja la cadera x cm, para bajar el centro de gravedad a una pata definida IZQUIERDA o DERECHA.
 
+![confussion matrix predict model](arquitectura/assets/cm.png)
+
 
 
 
