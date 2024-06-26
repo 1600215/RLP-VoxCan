@@ -105,8 +105,9 @@ Baja la cadera x cm, para bajar el centro de gravedad a una pata definida IZQUIE
 
 ![rango de movimiento eje trasero](arquitectura/assets/eje_trasero.png)
 
-## Control de estados
-### Algoritmo
+## Máquina de estados
+
+![bajar cadera movimiento](arquitectura/estados-robot.png)
 
 ## Contribución
 ¡Cualquier contribución es bienvenida!
