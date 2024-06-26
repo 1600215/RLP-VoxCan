@@ -58,30 +58,49 @@ Otras bibliotecas necesarias para funcionalidades adicionales y optimización.
 - `pooch==1.8.1`
 - `typing_extensions==4.11.0`
 
-### Instalación
-
-Para instalar todas las dependencias, ejecuta el siguiente comando:
-~~~
-pip install -r requirements.txt
-~~~
 
 ## Documentación
 Este README muestra los elementos detallados del proyecto llevado a cabo.
 
-Cómo usar
+### Cómo usar
 Clonar este repositorio.
 ~~~
 git clone https://github.com/1600215/RLP-VoxCan
 ~~~
 
-Instalar las bibliotecas requeridas.
+#### Instalar las bibliotecas requeridas
 
 Activar python environment:
 ~~~
 source activate venvRLP/bin/activate
 ~~~
+### Instalación
 
-Ejecutar el script de Python en cada directorio.
+Para instalar las dependencias de python, ejecuta el siguiente comando:
+~~~
+pip install -r requirements.txt
+~~~
+
+Para instalar las dependencias del webServer, ejecuta el siguiente comando:
+~~~
+cd webServer
+npm install
+~~~
+
+#### Ejecución robot
+
+Ejecución del programa main de la Raspberry Pi: 
+~~~
+cd raspi
+python main.py
+~~~
+
+Ejecución del WebServer para escuchar las llamadas de los comandos:
+~~~
+cd webServer
+node server.js
+~~~
+
 Agrega una Like a este repositorio si te gusta ❤.
 
 ## Descripción
@@ -92,22 +111,25 @@ Junto a ello, se ha montado un algoritmo de reconocimiento por voz para que el p
 
 ## Identificación de voz
 ### Confussion matrix
+
+Matriz del accuracy de cada clase de la identificación de la voz de los integrantes del grupo.
 ![confussion matrix predict model](arquitectura/assets/cm.png)
 
 ## Módulo de movimiento
 ### Función bajar cadera
 
 Baja la cadera x cm, para bajar el centro de gravedad a una pata definida IZQUIERDA o DERECHA.
-
 ![bajar cadera movimiento](arquitectura/assets/bajar_cadera.png)
 
 ### Rango de movimiento del eje trasero
 
+Angulos y radios de movimientos relativos al eje trasero de las patas traseras.
 ![rango de movimiento eje trasero](arquitectura/assets/eje_trasero.png)
 
 ## Máquina de estados
 
-![bajar cadera movimiento](arquitectura/estados-robot.png)
+Diferentes estados que mantiene el robot durante su ejecución. 
+![maquina_estados_robot](arquitectura/estados-robot.png)
 
 ## Contribución
 ¡Cualquier contribución es bienvenida!
