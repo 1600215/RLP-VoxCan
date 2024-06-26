@@ -94,7 +94,12 @@ Junto a ello, se ha montado un algoritmo de reconocimiento por voz para que el p
 ### Algoritmo
 
 ## Módulo de movimiento
-### Algoritmo
+### Función bajar caderaç
+
+Baja la cadera x cm, para bajar el centro de gravedad a una pata definida IZQUIERDA o DERECHA.
+
+
+
 
 ## Control de estados
 ### Algoritmo
