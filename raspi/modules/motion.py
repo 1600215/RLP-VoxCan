@@ -313,13 +313,15 @@ async def move_robot_with_imbalance(ser, queue, degrees=0):
             if await switch_state(queueAudio):
                 print("FIN WALK")
                 return
-
+            
+       
             if distance() > 3:
                 print("ROTATE 180")
                 await rotate_180(ser)
                 await queueWalk.put(MESSAGE_WALK)
                 print("FIN WALK")
                 return
+        
 
             #bajar cadera
             other_leg = switch_leg(leg)

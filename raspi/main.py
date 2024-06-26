@@ -15,7 +15,6 @@ import asyncio
 current_state = State.CONNECT
 rotate_degrees = None
 standby_params = None
-calibration = {}
 
 ser = None
 mpu = None
@@ -26,7 +25,10 @@ queueWalk = asyncio.Queue()
 
 #--------------------------------------------------------------
 # Inicialización de hardware
+
+
 try:
+    GPIO.setwarnings(False)
     # Inicialización de los pines GPIO de los leds
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(LED_PIN_GREEN, GPIO.OUT) # LED1
@@ -56,7 +58,7 @@ except  Exception as e:
 async def main():
     
     #declarar variables globales
-    global current_state, calibration, standby_params, rotate_degrees
+    global current_state, standby_params, rotate_degrees
         
     t = time.time()
     #----------------------------------------------------
@@ -72,6 +74,7 @@ async def main():
                 un juego de luces y se cambia al estado SET_INIT.
                 """
                 
+                print("ESTADO CONNECT")
                 # Si la conexión con el Arduino Nano está abierta
                 if ser.isOpen():
                     time.sleep(1)  # Esperar a que el puerto serie se abra correctamente
@@ -92,7 +95,6 @@ async def main():
                                     time.sleep(0.5)
                                     GPIO.output(LED_PIN_YELLOW, GPIO.LOW)
                                     i = i + 1
-                                print("Conectado con arduino")
                                 
                                 #cambio de estado a SET_INIT
                                 current_state = State.SET_INIT
@@ -126,11 +128,11 @@ async def main():
                 y se cambia al estado CALIBRATION.
                 """
                 #mandar comando setPos a arduino con posiciones de inicialización
-                
+                print("ESTADO SET_INIT")
+       
                 if not await standup(ser):
                     raise Exception("Error al enviar el comando de INIT-STANDUP al Arduino Nano")
                 
-                print("INIT establecido")
                 #juego de luces de color YELLOW para indicar que se ha inicializado
                 try:
                     GPIO.output(LED_PIN_YELLOW, GPIO.LOW)
@@ -164,7 +166,7 @@ async def main():
                 await asyncio.sleep(1)
                         
                 while True: 
-                    print(f"Estado actual STANDBY, esperando nuevos comandos")
+                    print(f"ESTADO STANDBY, esperando nuevos comandos")
                     
                     # Llamar a process_files con la variable global current_state
                     next_state = await process_files( audio_folder=AUDIO_FOLDER, state=current_state)
@@ -193,6 +195,7 @@ async def main():
                 realizar comando SIT, genera la tarea y cuando termina manda finish_command al servidor,
                 este volverá a habilitar el botón
                 """
+                print("ESTADO SIT")
                 
                 #realizar comando sit con una tarea
                 print("empezando estado SIT")
@@ -208,7 +211,7 @@ async def main():
                 #bucle infinito para generar tareas que analizen la carpeta AUDIO_FOLDER
                 while True:
                     
-                    print(f"Estado actual SIT, esperando nuevos comandos")
+                    print(f"ESTADO SIT, esperando nuevos comandos")
                     
                     #generar una tarea para analizar los archivos de AUDIO_FOLDER
                     next_state = await process_files( audio_folder=AUDIO_FOLDER, state=current_state)
@@ -229,6 +232,8 @@ async def main():
                 este volverá a habilitar el botón
                 """
                 
+                print("ESTADO STANDUP")
+
                 #realizar comando STANDUP con una tarea
                 print("empezando estado STANDUP")
                 if not await standup(ser):
@@ -243,7 +248,7 @@ async def main():
                 #bucle infinito para generar tareas que analizen la carpeta AUDIO_FOLDER
                 while True:
                     
-                    print(f"Estado actual STANDUP, esperando nuevos comandos")
+                    print(f"ESTADO STANDUP, esperando nuevos comandos")
                     
                     #generar una tarea para analizar los archivos de AUDIO_FOLDER
                     next_state = await process_files( audio_folder=AUDIO_FOLDER, state=current_state)
@@ -268,7 +273,7 @@ async def main():
             #Estado WALK
             elif current_state == State.WALK:
                 
-                print("Empezando estado WALK")
+                print("ESTADO WALK")
                 
                 """
                 realizar comando WALK, genera la taska y se comunican las dos tareas mediante una cola,
@@ -276,11 +281,11 @@ async def main():
                 """
 
                 #tarea paralela a la lectura de archivos para no parar de andar hasta recibir otro comando y/o chocarse
-                asyncio.create_task(move_robot_with_imbalance(ser, calibration, queue=(queueWalk, queueAudio)))
+                asyncio.create_task(move_robot_with_imbalance(ser, queue=(queueWalk, queueAudio)))
                     
                 while True: 
                     
-                    print(f"Estado actual WALK, esperando nuevos comandos")
+                    print(f"ESTADO WALK, esperando nuevos comandos")
 
                     #tarea para analizar la carpeta AUDIO_FOLDER
                     next_state = await process_files(audio_folder=AUDIO_FOLDER, state=current_state, queue=(queueAudio, queueWalk))
@@ -308,6 +313,7 @@ async def main():
                 En el estado SIT_DOWN, el sistema ejecuta la acción de sentarse,
                 utilizando la función sit. Luego, cambia de estado a STANDBY.
                 """
+                print("ESTADO ROTATE")
                 #realizar comando ROTATE
                 print("empezando estado ROTATE")
                 if not await rotate(ser, rotate_degrees):
@@ -320,7 +326,7 @@ async def main():
 
                 while True:
                     
-                    print(f"Estado actual SIT, esperando nuevos comandos")
+                    print(f"ESTADO ROTATE, esperando nuevos comandos")
                     
                     #generar una tarea para analizar los archivos de AUDIO_FOLDER
                     next_state = await process_files( audio_folder=AUDIO_FOLDER, state=current_state)

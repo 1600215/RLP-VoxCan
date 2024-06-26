@@ -92,13 +92,10 @@ def connect(ser):
     try:
         recv = json.loads(recv)
     except:    
-        print("Error al cargar el json - volvemos a intentar")
         return False
         
     if "status" in recv and recv["status"] == Status.OK:
-        print("Arduino Nano comunicado")
         return True
                     
-    print("Error al comunicar con el Arduino Nano - volvemos a intentar")
     return False
     
