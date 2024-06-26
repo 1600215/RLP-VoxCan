@@ -90,18 +90,20 @@ El enfoque principal de este proyecto es la integración de hardware y software 
 El objetivo como se ha dicho ya, es montar un robot mascota con dos patas traseras y una rueda delantera. Éste realizara unos movimientos básicos como andar, girar, sentarse, etcétera, simulando los movimientos naturales de un perro. 
 Junto a ello, se ha montado un algoritmo de reconocimiento por voz para que el propio robot reconozca a su amo, o conocidos (unicamente a los integrantes del grupo). Con un webserver hemos añadido la funcionalidad de hacer las llamadas desde una interfície web, enviando audios a la Raspberry Pi y que actue como cerebro de ejecución sobre el robot.
 
-## Reconocimiento de voz
-### Algoritmo
+## Identificación de voz
+### Confussion matrix
+![confussion matrix predict model](arquitectura/assets/cm.png)
 
 ## Módulo de movimiento
-### Función bajar caderaç
+### Función bajar cadera
 
 Baja la cadera x cm, para bajar el centro de gravedad a una pata definida IZQUIERDA o DERECHA.
 
-![confussion matrix predict model](arquitectura/assets/cm.png)
+![bajar cadera movimiento](arquitectura/assets/bajar_cadera.png)
 
+### Rango de movimiento del eje trasero
 
-
+![rango de movimiento eje trasero](arquitectura/assets/eje_trasero.png)
 
 ## Control de estados
 ### Algoritmo
